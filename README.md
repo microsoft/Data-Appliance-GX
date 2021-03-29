@@ -33,6 +33,34 @@ The runtime can then be started from the root clone directory using:
 Note the secrets directory referenced above is configured to be ignored. A test key store and vault must be added (or the launch command modified to point to different locations).
 Also, set the keystore password accordingly.
 
+# Building and running with Docker
+## Without a security profile
+The runtime is containerized so that it can be run inside a docker container. First, the image needs to be built:
+```shell
+docker build -t microsoft/dagx .
+```
+
+Run the container:
+
+```shell
+docker run --name dagx -p 8181:8181 microsoft/dagx
+```
+
+## With the `fs` security profile
+```shell
+docker build --build-arg SECURITY=fs -t microsoft/dagx .
+```
+Run the container:
+```shell
+docker run --rm --name dagx --mount type=bind,source="$(pwd)"/secrets,target=/etc/dagx/secrets -p 8181:8181 microsoft/dagx
+```
+Note that when using the `fs` security profile the `--mount` argument is **not** optional as the runtime expects two files to exist at `/etc/dagx/secrets`:
+1. `dagx-vault.properties`: the "filesystem vault" that we use for development purposes
+1. `dagx-test-keystore.jks`
+
+Consequently, those two files must exist on the host machine at `<pwd>/secrets` or whatever `source` directory that was specificed in the `run` command of the container. 
+
+
 
 ## Contributing
 
