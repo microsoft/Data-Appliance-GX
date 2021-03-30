@@ -34,31 +34,24 @@ Note the secrets directory referenced above is configured to be ignored. A test 
 Also, set the keystore password accordingly.
 
 # Building and running with Docker
-## Without a security profile
-The runtime is containerized so that it can be run inside a docker container. First, the image needs to be built:
+Build the docker image with the following command
 ```shell
 docker build -t microsoft/dagx .
 ```
-
-Run the container:
-
-```shell
-docker run --name dagx -p 8181:8181 microsoft/dagx
-```
-
-## With the `fs` security profile
-```shell
-docker build --build-arg SECURITY=fs -t microsoft/dagx .
-```
 Run the container:
 ```shell
-docker run --rm --name dagx --mount type=bind,source="$(pwd)"/secrets,target=/etc/dagx/secrets -p 8181:8181 microsoft/dagx
+docker run --rm --name dagx --mount type=bind,source="$(pwd)"/secrets,target=/etc/dagx/secrets \ 
+-e DAGX_KEYSTORE_PASSWORD=test123 -e DAGX_KEYSTORE=/etc/dagx/secrets/dagx-test-keystore.jks \ 
+-e DAGX_VAULT=/etc/dagx/secrets/dagx-vault.properties -p 8181:8181 microsoft/dagx
 ```
-Note that when using the `fs` security profile the `--mount` argument is **not** optional as the runtime expects two files to exist at `/etc/dagx/secrets`:
-1. `dagx-vault.properties`: the "filesystem vault" that we use for development purposes
-1. `dagx-test-keystore.jks`
+Note that since we're using the `fs` security profile, the `--mount` argument is **not** optional as the runtime expects the vault file and the keystore file to be present. 
+Also, the following environment variables are **mandatory**. If they're omitted, the runtime won't start:  
+1. `DAGX_VAULT`: the file that contains the filesystem-based vault
+1. `DAGX_KEYSTORE`: a Java keystore file
+1. `DAGX_KEYSTORE_PASSWORD`: the password for the Java keystore
 
-Consequently, those two files must exist on the host machine at `<pwd>/secrets` or whatever `source` directory that was specificed in the `run` command of the container. 
+Basically the contents of the host machine's `secrets` directory are mapped into the container at run-time. 
+Consequently, those two files must exist on the host machine at `<pwd>/secrets` or whatever `source` directory that was specified in the `run` command of the container. 
 
 
 
