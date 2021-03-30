@@ -13,9 +13,11 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
-    - name: Build with Gradle
-      run: ./gradlew compile
-    - name: Test with Gradle
+    - name: Gradle Build
+      run: ./gradlew compileJava
+    - name: Gradle Test
       run: ./gradlew test
-    - name: Assemble with Gradle
+    - name: Gradle create shadowJar
       run: ./gradlew shadowJar
+    - name: Build the Docker image
+      run: docker build . --file Dockerfile --tag microsoft/dagx:$(date +%s)
