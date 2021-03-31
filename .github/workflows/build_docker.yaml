@@ -12,11 +12,15 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: '11'
+
       - name: Gradle compile
         run: ./gradlew compileJava
+
       - name: Gradle Test
         run: ./gradlew test
+
       - name: Gradle create shadowJar
         run: ./gradlew -Dsecurity.type=fs shadowJar
-      - name: Build Docker Image (fs)
-        run: docker build . --file Dockerfile --tag microsoft/dagx:fs-$(date +%s)
+
+      - name: Build Demo Image
+        run: ./gradlew clean buildDemo

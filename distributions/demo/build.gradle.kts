@@ -31,12 +31,12 @@ dependencies {
 
 }
 
-// building docker images for the Demo (which uses the file system)
+// generate docker file
 val createDockerfile by tasks.creating(Dockerfile::class) {
     from("openjdk:11-jre-slim")
     runCommand("mkdir /app")
     copyFile("./build/libs/dagx-demo.jar", "/app/dagx-runtime.jar")
-    runCommand("mkdir -p /etc/dagx/secrets")
+
     copyFile("secrets/dagx-vault.properties", "/app/dagx-vault.properties")
     copyFile("secrets/dagx-test-keystore.jks", "/app/dagx-test-keystore.jks")
 
@@ -47,16 +47,18 @@ val createDockerfile by tasks.creating(Dockerfile::class) {
     entryPoint("java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/dagx-runtime.jar")
 }
 
-val buildImage by tasks.creating(DockerBuildImage::class) {
+// build the image
+val buildDemo by tasks.creating(DockerBuildImage::class) {
     dependsOn("shadowJar", createDockerfile)
     dockerFile.set(project.file("${buildDir}/docker/Dockerfile"))
     inputDir.set(project.file("."))
-    images.add("microsoft/dagx")
+    images.add("microsoft/dagx:demo")
 }
 
+// create demo container
 val createDemoContainer by tasks.creating(DockerCreateContainer::class) {
-    dependsOn(buildImage)
-    targetImageId(buildImage.imageId)
+    dependsOn(buildDemo)
+    targetImageId(buildDemo.imageId)
     hostConfig.portBindings.set(listOf("8181:8181"))
     hostConfig.autoRemove.set(true)
     containerName.set("dagx-demo")
