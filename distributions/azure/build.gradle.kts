@@ -43,7 +43,6 @@ var imageName = ""
 
 // initializes variables
 tasks.register("initializer") {
-    val initializer by tasks
     val configFile = project.file(filename)
     if (!configFile.exists()) {
         println("WARNING: No $filename file was found, default will be used. Publishing won't be available!")

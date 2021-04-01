@@ -33,3 +33,8 @@ build
 /secrets
 
 distributions/**/github.properties
+
+# ignore all certificates
+*.pfx
+*.pem
+*.cert

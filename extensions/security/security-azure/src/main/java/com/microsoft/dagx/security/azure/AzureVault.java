@@ -33,7 +33,7 @@ public class AzureVault implements Vault {
                 .buildClient();
     }
 
-    private ClientCertificateCredential buildCertificateCredentials(String clientId, String tenantId, String certificatePath){
+    private ClientCertificateCredential buildCertificateCredentials(String clientId, String tenantId, String certificatePath) {
         return new ClientCertificateCredentialBuilder()
                 .clientId(clientId)
                 .tenantId(tenantId)
@@ -45,10 +45,10 @@ public class AzureVault implements Vault {
     public @Nullable String resolveSecret(String key) {
         try {
             var secret = secretClient.getSecret("test");
-            monitor.info("Secret \"test\" obtained successfully");
+            monitor.debug("Secret ["+key+"] obtained successfully");
             return secret.getValue();
         } catch (ResourceNotFoundException ex) {
-            monitor.severe("Secret " + key + " not found!", ex);
+            monitor.severe("Secret [" + key + "] not found!", ex);
             return null;
         }
 
@@ -58,7 +58,7 @@ public class AzureVault implements Vault {
     public VaultResponse storeSecret(String key, String value) {
         try {
             var secret = secretClient.setSecret(key, value);
-            monitor.info("storing secret "+key+" successful");
+            monitor.debug("storing secret [" + key + "] successful");
             return VaultResponse.OK;
         } catch (Exception ex) {
             monitor.severe("Error storing secret " + key, ex);
