@@ -34,18 +34,23 @@ dependencies {
 
 }
 
-val filename = "github.properties"
+val githubPropertiesFile = "github.properties"
+val azurePropertiesFile= "azure.properties"
 var email = ""
 var user = "microsoft"
 var pwd = ""
 var url = ""
 var imageName = ""
 
+var clientId=""
+var tenantId = ""
+var certFile= ""
+
 // initializes variables
 tasks.register("initializer") {
-    val configFile = project.file(filename)
+    val configFile = project.file(githubPropertiesFile)
     if (!configFile.exists()) {
-        println("WARNING: No $filename file was found, default will be used. Publishing won't be available!")
+        println("WARNING: No $githubPropertiesFile file was found, default will be used. Publishing won't be available!")
     } else {
         val fis = FileInputStream(configFile)
         val prop = Properties()
@@ -69,13 +74,38 @@ tasks.register("initializer") {
 
 }
 
+tasks.register("readAzureConfig"){
+    val configFile = project.file(azurePropertiesFile)
+    if (!configFile.exists()) {
+        throw IllegalArgumentException("No $azurePropertiesFile file was found! Aborting...")
+    } else {
+        val fis = FileInputStream(configFile)
+        val prop = Properties()
+        prop.load(fis)
+
+        clientId = prop.getProperty("dagx.vault.clientid")
+        tenantId = prop.getProperty("dagx.vault.tenantid")
+        certFile = prop.getProperty("dagx.vault.certificate")
+
+        if(!project.file(certFile).exists())
+            throw kotlin.IllegalArgumentException("File $certFile does not exist!")
+    }
+
+}
 
 // generate docker file
 val createDockerfile by tasks.creating(Dockerfile::class) {
-    dependsOn("initializer")
+
+    dependsOn("initializer", "readAzureConfig")
     from("openjdk:11-jre-slim")
     runCommand("mkdir /app")
     copyFile("./build/libs/dagx-azure.jar", "/app/dagx-azure.jar")
+
+    copyFile(certFile, "/app/azure-vault-cert.pfx")
+
+    environmentVariable("DAGX_VAULT_CLIENTID", clientId)
+    environmentVariable("DAGX_VAULT_TENANTID", tenantId)
+    environmentVariable("DAGX_VAULT_CERTIFICATE", "/app/azure-vault-cert.pfx")
 
     entryPoint("java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/dagx-azure.jar")
 }

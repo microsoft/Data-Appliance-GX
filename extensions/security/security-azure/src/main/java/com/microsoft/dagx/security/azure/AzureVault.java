@@ -31,6 +31,12 @@ public class AzureVault implements Vault {
                 .vaultUrl(keyVaultUri)
                 .credential(credential)
                 .buildClient();
+
+        var value = resolveSecret("test");
+        if (value != null) {
+            monitor.info("An AZ KeyVault secret with [test] exists: " + value);
+        } else
+            monitor.info("An AZ KeyVault secret with [test] does not exist");
     }
 
     private ClientCertificateCredential buildCertificateCredentials(String clientId, String tenantId, String certificatePath) {

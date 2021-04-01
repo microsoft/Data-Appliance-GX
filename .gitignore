@@ -38,3 +38,5 @@ distributions/**/github.properties
 *.pfx
 *.pem
 *.cert
+
+distributions/azure/azure.properties
