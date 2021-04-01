@@ -32,4 +32,4 @@ build
 
 /secrets
 
-distributions/demo/github.properties
+distributions/**/github.properties
