@@ -1,6 +1,8 @@
-import com.bmuschko.gradle.docker.tasks.image.Dockerfile
-import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.image.*
 import com.bmuschko.gradle.docker.tasks.container.*
+
+import java.io.FileInputStream
+import java.util.*
 
 plugins {
     `java-library`
@@ -31,11 +33,49 @@ dependencies {
 
 }
 
+val filename = "github.properties"
+var email = ""
+var user = "microsoft"
+var pwd = ""
+var url = ""
+var imageName = ""
+
+// initializes variables
+tasks.register("initializer") {
+    val initializer by tasks
+    val configFile = project.file(filename)
+    if (!configFile.exists()) {
+        println("WARNING: No $filename file was found, default will be used. Publishing won't be available!")
+    } else {
+        val fis = FileInputStream(configFile)
+        val prop = Properties()
+        prop.load(fis)
+        email = prop.getProperty("email")
+        user = prop.getProperty("user")
+        pwd = prop.getProperty("password")
+        url = prop.getProperty("url")
+    }
+    imageName = "$user/dagx-demo:latest"
+
+    if (url != "") {
+        imageName = "$url/$imageName"
+    }
+
+    println("Will use the following docker config:")
+    println("  - URL: $url")
+    println("  - User: $user")
+    println("  - Email: $email")
+    println("  - Image: $imageName")
+
+}
+
+
 // generate docker file
 val createDockerfile by tasks.creating(Dockerfile::class) {
+    dependsOn("initializer")
     from("openjdk:11-jre-slim")
     runCommand("mkdir /app")
-    copyFile("./build/libs/dagx-demo.jar", "/app/dagx-runtime.jar")
+    copyFile("./build/libs/dagx-demo.jar", "/app/dagx-demo.jar")
 
     copyFile("secrets/dagx-vault.properties", "/app/dagx-vault.properties")
     copyFile("secrets/dagx-test-keystore.jks", "/app/dagx-test-keystore.jks")
@@ -44,7 +84,7 @@ val createDockerfile by tasks.creating(Dockerfile::class) {
     environmentVariable("DAGX_KEYSTORE", "/app/dagx-test-keystore.jks")
     environmentVariable("DAGX_KEYSTORE_PASSWORD", "test123")
 
-    entryPoint("java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/dagx-runtime.jar")
+    entryPoint("java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/dagx-demo.jar")
 }
 
 // build the image
@@ -52,7 +92,7 @@ val buildDemo by tasks.creating(DockerBuildImage::class) {
     dependsOn("shadowJar", createDockerfile)
     dockerFile.set(project.file("${buildDir}/docker/Dockerfile"))
     inputDir.set(project.file("."))
-    images.add("microsoft/dagx:demo")
+    images.add(imageName)
 }
 
 // create demo container
@@ -66,17 +106,24 @@ val createDemoContainer by tasks.creating(DockerCreateContainer::class) {
 
 // start runtime demo in docker
 val startDemo by tasks.creating(DockerStartContainer::class) {
-    doFirst {
-        System.setProperty("security.type", "fs")
-
-    }
     dependsOn(createDemoContainer)
     targetContainerId(createDemoContainer.containerId)
 }
 
+//publish to github
+val publishDemo by tasks.creating(DockerPushImage::class) {
+    dependsOn(buildDemo)
+
+    registryCredentials.email.set(email)
+    registryCredentials.username.set(user)
+    registryCredentials.password.set(pwd)
+    registryCredentials.url.set(imageName)
+    images.add(imageName)
+}
+
 application {
     @Suppress("DEPRECATION")
-    mainClassName= "com.microsoft.dagx.runtime.DagxRuntime"
+    mainClassName = "com.microsoft.dagx.runtime.DagxRuntime"
 }
 
 tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
