@@ -1,0 +1,46 @@
+package com.microsoft.dagx.security.azure;
+
+import com.microsoft.dagx.spi.monitor.Monitor;
+import com.microsoft.dagx.spi.security.CertificateResolver;
+import com.microsoft.dagx.spi.security.PrivateKeyResolver;
+import com.microsoft.dagx.spi.security.Vault;
+import com.microsoft.dagx.spi.system.VaultExtension;
+
+import java.util.Objects;
+import java.util.stream.Stream;
+
+import static com.microsoft.dagx.spi.util.ConfigurationFunctions.propOrEnv;
+
+
+public class AzureVaultExtension implements VaultExtension {
+
+    private Vault vault;
+
+    @Override
+    public void initialize(Monitor monitor) {
+
+        String clientId = propOrEnv("dagx.vault.clientid", null);
+        String tenantId = propOrEnv("dagx.vault.tenantid", null);
+        String certPath = propOrEnv("dagx.vault.certificate", null);
+
+        if (Stream.of(clientId, tenantId, certPath).anyMatch(Objects::isNull))
+            throw new AzureVaultException("Please supply all of dagx.vault.clientid, dagx.vault.tenantid and dagx.vault.certificate");
+
+        this.vault = new AzureVault(monitor, clientId, tenantId, certPath);
+    }
+
+    @Override
+    public Vault getVault() {
+        return vault;
+    }
+
+    @Override
+    public PrivateKeyResolver getPrivateKeyResolver() {
+        return new AzurePrivateKeyResolver(vault);
+    }
+
+    @Override
+    public CertificateResolver getCertificateResolver() {
+        return new AzureCertificateResolver(vault);
+    }
+}
