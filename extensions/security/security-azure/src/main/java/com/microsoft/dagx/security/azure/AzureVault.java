@@ -43,7 +43,8 @@ public class AzureVault implements Vault {
     @Override
     public @Nullable String resolveSecret(String key) {
         try {
-            var secret = secretClient.getSecret("test");
+
+            var secret = secretClient.getSecret(key);
             monitor.debug("Secret obtained successfully");
             return secret.getValue();
         } catch (ResourceNotFoundException ex) {

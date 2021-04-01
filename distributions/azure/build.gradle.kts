@@ -43,37 +43,11 @@ var url = ""
 var imageName = ""
 
 
-// initializes variables
-tasks.register("initializer") {
-    val configFile = project.file(githubPropertiesFile)
-    if (!configFile.exists()) {
-        println("WARNING: No $githubPropertiesFile file was found, default will be used. Publishing won't be available!")
-    } else {
-        val fis = FileInputStream(configFile)
-        val prop = Properties()
-        prop.load(fis)
-        email = prop.getProperty("email")
-        user = prop.getProperty("user")
-        pwd = prop.getProperty("password")
-        url = prop.getProperty("url")
-    }
-    imageName = "$user/dagx-azure:latest"
-
-    if (url != "") {
-        imageName = "$url/$imageName"
-    }
-
-    println("Will use the following docker config:")
-    println("  - URL: $url")
-    println("  - User: $user")
-    println("  - Email: $email")
-    println("  - Image: $imageName")
-
-}
-
-
 // generate docker file
 val createDockerfile by tasks.creating(Dockerfile::class) {
+
+    readGithubConfig(this, this@Build_gradle)
+
 
     //read config for azure keyvault
 
@@ -94,7 +68,6 @@ val createDockerfile by tasks.creating(Dockerfile::class) {
         throw kotlin.IllegalArgumentException("File $certFile does not exist!")
 
 
-    dependsOn("initializer")
     from("openjdk:11-jre-slim")
     runCommand("mkdir /app")
     copyFile("./build/libs/dagx-azure.jar", "/app/dagx-azure.jar")
@@ -105,7 +78,7 @@ val createDockerfile by tasks.creating(Dockerfile::class) {
     environmentVariable("DAGX_VAULT_TENANTID", tenantId)
     environmentVariable("DAGX_VAULT_CERTIFICATE", "/app/azure-vault-cert.pfx")
     environmentVariable("DAGX_VAULT_NAME", vaultName)
-
+    exposePort(8181)
     entryPoint("java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/dagx-azure.jar")
 }
 
@@ -152,4 +125,30 @@ tasks.withType<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar> {
     exclude("**/pom.properties", "**/pom.xm")
     mergeServiceFiles()
     archiveFileName.set("dagx-azure.jar")
+}
+
+fun readGithubConfig(dockerfile: Dockerfile, buildGradle: Build_gradle) {
+    val githubConfigFile = dockerfile.project.file(buildGradle.githubPropertiesFile)
+    if (!githubConfigFile.exists()) {
+        println("WARNING: No ${buildGradle.githubPropertiesFile} file was found, default will be used. Publishing won't be available!")
+    } else {
+        val fis = FileInputStream(githubConfigFile)
+        val prop = Properties()
+        prop.load(fis)
+        buildGradle.email = prop.getProperty("email")
+        buildGradle.user = prop.getProperty("user")
+        buildGradle.pwd = prop.getProperty("password")
+        buildGradle.url = prop.getProperty("url")
+    }
+    buildGradle.imageName = "${buildGradle.user}/dagx-azure:latest"
+
+    if (buildGradle.url != "") {
+        buildGradle.imageName = "${buildGradle.url}/${buildGradle.imageName}"
+    }
+
+    println("Will use the following docker config:")
+    println("  - URL: ${buildGradle.url}")
+    println("  - User: ${buildGradle.user}")
+    println("  - Email: ${buildGradle.email}")
+    println("  - Image: ${buildGradle.imageName}")
 }
