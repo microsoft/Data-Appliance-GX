@@ -19,10 +19,9 @@ public class AzureVault implements Vault {
     private final Monitor monitor;
     private final SecretClient secretClient;
 
-    public AzureVault(Monitor monitor, String clientId, String tenantId, String certificatePath) {
+    public AzureVault(Monitor monitor, String clientId, String tenantId, String certificatePath, String keyVaultName) {
         this.monitor = monitor;
 
-        var keyVaultName = "dagx-vault";
         String keyVaultUri = "https://" + keyVaultName + ".vault.azure.net";
 
         TokenCredential credential = buildCertificateCredentials(clientId, tenantId, certificatePath);
@@ -31,12 +30,6 @@ public class AzureVault implements Vault {
                 .vaultUrl(keyVaultUri)
                 .credential(credential)
                 .buildClient();
-
-        var value = resolveSecret("test");
-        if (value != null) {
-            monitor.info("An AZ KeyVault secret with [test] exists: " + value);
-        } else
-            monitor.info("An AZ KeyVault secret with [test] does not exist");
     }
 
     private ClientCertificateCredential buildCertificateCredentials(String clientId, String tenantId, String certificatePath) {
@@ -51,10 +44,10 @@ public class AzureVault implements Vault {
     public @Nullable String resolveSecret(String key) {
         try {
             var secret = secretClient.getSecret("test");
-            monitor.debug("Secret ["+key+"] obtained successfully");
+            monitor.debug("Secret obtained successfully");
             return secret.getValue();
         } catch (ResourceNotFoundException ex) {
-            monitor.severe("Secret [" + key + "] not found!", ex);
+            monitor.severe("Secret not found!", ex);
             return null;
         }
 
@@ -64,10 +57,10 @@ public class AzureVault implements Vault {
     public VaultResponse storeSecret(String key, String value) {
         try {
             var secret = secretClient.setSecret(key, value);
-            monitor.debug("storing secret [" + key + "] successful");
+            monitor.debug("storing secret successful");
             return VaultResponse.OK;
         } catch (Exception ex) {
-            monitor.severe("Error storing secret " + key, ex);
+            monitor.severe("Error storing secret", ex);
             return new VaultResponse(ex.getMessage());
         }
     }

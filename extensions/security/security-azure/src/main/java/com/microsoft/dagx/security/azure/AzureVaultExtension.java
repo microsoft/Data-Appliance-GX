@@ -22,11 +22,12 @@ public class AzureVaultExtension implements VaultExtension {
         String clientId = propOrEnv("dagx.vault.clientid", null);
         String tenantId = propOrEnv("dagx.vault.tenantid", null);
         String certPath = propOrEnv("dagx.vault.certificate", null);
+        String keyVaultName = propOrEnv("dagx.vault.name", null);
 
-        if (Stream.of(clientId, tenantId, certPath).anyMatch(Objects::isNull))
-            throw new AzureVaultException("Please supply all of dagx.vault.clientid, dagx.vault.tenantid and dagx.vault.certificate");
+        if (Stream.of(clientId, tenantId, certPath, keyVaultName).anyMatch(Objects::isNull))
+            throw new AzureVaultException("Please supply all of dagx.vault.clientid, dagx.vault.tenantid, dagx.vault.certificate and dagx.vault.name");
 
-        this.vault = new AzureVault(monitor, clientId, tenantId, certPath);
+        this.vault = new AzureVault(monitor, clientId, tenantId, certPath, keyVaultName);
     }
 
     @Override
