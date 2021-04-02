@@ -22,6 +22,7 @@ public class AzureVaultAssemlbyFactory {
         Map<String, CommandExecutor> executors= new HashMap<>();
         executors.put("get", new AzureVaultGetSecretRequestExecutor());
         executors.put("set", new AzureVaultSetSecretRequestExecutor());
+        executors.put("del", new AzureVaultDelSecretRequestExecutor());
         return executors;
     }
 }

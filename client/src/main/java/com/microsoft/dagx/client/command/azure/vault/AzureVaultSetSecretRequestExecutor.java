@@ -2,7 +2,7 @@ package com.microsoft.dagx.client.command.azure.vault;
 
 import com.microsoft.dagx.client.command.CommandResult;
 import com.microsoft.dagx.client.command.ExecutionContext;
-import org.slf4j.event.KeyValuePair;
+import com.microsoft.dagx.spi.security.VaultEntry;
 
 import static com.microsoft.dagx.client.command.http.HttpOperations.executePost;
 
@@ -21,6 +21,6 @@ public class AzureVaultSetSecretRequestExecutor implements com.microsoft.dagx.cl
 //        var response = vault.storeSecret(key, value);
 //        return response.success() ? new CommandResult("OK") : new CommandResult(true, response.error());
 
-        return executePost("/api/vault", new KeyValuePair(key, value), context);
+        return executePost("/api/vault", new VaultEntry(key, value), context);
     }
 }
