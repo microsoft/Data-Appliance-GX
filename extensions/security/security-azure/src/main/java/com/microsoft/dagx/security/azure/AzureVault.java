@@ -5,6 +5,7 @@ import com.azure.core.exception.ResourceNotFoundException;
 import com.azure.core.util.polling.SyncPoller;
 import com.azure.identity.ClientCertificateCredential;
 import com.azure.identity.ClientCertificateCredentialBuilder;
+import com.azure.identity.ClientSecretCredentialBuilder;
 import com.azure.security.keyvault.secrets.SecretClient;
 import com.azure.security.keyvault.secrets.SecretClientBuilder;
 import com.azure.security.keyvault.secrets.models.DeletedSecret;
@@ -21,29 +22,37 @@ import java.util.concurrent.TimeoutException;
  */
 public class AzureVault implements Vault {
 
-    private final Monitor monitor;
+    private Monitor monitor;
     private final SecretClient secretClient;
 
-    public AzureVault(Monitor monitor, String clientId, String tenantId, String certificatePath, String keyVaultName) {
-        this.monitor = monitor;
-
-        String keyVaultUri = "https://" + keyVaultName + ".vault.azure.net";
-
-        TokenCredential credential = buildCertificateCredentials(clientId, tenantId, certificatePath);
-
+    private AzureVault(TokenCredential credential, Monitor monitor, String keyVaultUri){
+        this.monitor= monitor;
         secretClient = new SecretClientBuilder()
                 .vaultUrl(keyVaultUri)
                 .credential(credential)
                 .buildClient();
     }
 
-    private ClientCertificateCredential buildCertificateCredentials(String clientId, String tenantId, String certificatePath) {
-        return new ClientCertificateCredentialBuilder()
+    public static AzureVault authenticateWithSecret(Monitor monitor, String clientId, String tenantId, String clientSecret, String keyVaultName){
+        String keyVaultUri = "https://" + keyVaultName + ".vault.azure.net";
+
+        TokenCredential credential = new ClientSecretCredentialBuilder().clientId(clientId).tenantId(tenantId).clientSecret(clientSecret).build();
+
+        return new AzureVault(credential, monitor, keyVaultUri);
+    }
+
+    public static AzureVault authenticateWithCertificate(Monitor monitor, String clientId, String tenantId, String certificatePath, String keyVaultName){
+        String keyVaultUri = "https://" + keyVaultName + ".vault.azure.net";
+
+        TokenCredential credential= new ClientCertificateCredentialBuilder()
                 .clientId(clientId)
                 .tenantId(tenantId)
                 .pfxCertificate(certificatePath, "")
                 .build();
+
+        return new AzureVault(credential, monitor, keyVaultUri);
     }
+
 
     @Override
     public @Nullable String resolveSecret(String key) {

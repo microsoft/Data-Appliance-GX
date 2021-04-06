@@ -27,7 +27,7 @@ public class AzureVaultExtension implements VaultExtension {
         if (Stream.of(clientId, tenantId, certPath, keyVaultName).anyMatch(Objects::isNull))
             throw new AzureVaultException("Please supply all of dagx.vault.clientid, dagx.vault.tenantid, dagx.vault.certificate and dagx.vault.name");
 
-        this.vault = new AzureVault(monitor, clientId, tenantId, certPath, keyVaultName);
+        this.vault = AzureVault.authenticateWithCertificate(monitor, clientId, tenantId, certPath, keyVaultName);
     }
 
     @Override

@@ -50,7 +50,6 @@ val createDockerfile by tasks.creating(Dockerfile::class) {
 
 
     //read config for azure keyvault
-
     val configFile = project.file(azurePropertiesFile)
     if (!configFile.exists()) {
         throw IllegalArgumentException("No $azurePropertiesFile file was found! Aborting...")
