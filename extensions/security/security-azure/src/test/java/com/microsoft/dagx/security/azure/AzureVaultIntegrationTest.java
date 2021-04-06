@@ -57,7 +57,7 @@ public class AzureVaultIntegrationTest {
     }
 
     @Test
-    void storeSecret_overwrites(){
+    void storeSecret_overwrites() {
         azureVault.storeSecret(secretKey, "value1");
         azureVault.storeSecret(secretKey, "value2");
 
@@ -65,19 +65,35 @@ public class AzureVaultIntegrationTest {
     }
 
     @Test
-    void resolveSecret_notExist(){
+    void resolveSecret_notExist() {
         assertNull(azureVault.resolveSecret("notexist"));
     }
 
     @Test
-    void resolveSecret(){
+    void resolveSecret() {
         assertTrue(azureVault.storeSecret(secretKey, "someVal").success());
 
         assertEquals("someVal", azureVault.resolveSecret(secretKey));
     }
 
+    @Test
+    void delete_notExist() {
+        VaultResponse vr = azureVault.deleteSecret("notexist");
+        assertFalse(vr.success());
+        assertNotNull(vr.error());
+    }
+
+    @Test
+    void delete() {
+        azureVault.storeSecret(secretKey, "someval");
+
+        VaultResponse vr = azureVault.deleteSecret(secretKey);
+        assertTrue(vr.success());
+        assertNull(vr.error());
+    }
+
     @AfterEach
-    void cleanup(){
+    void cleanup() {
         azureVault.deleteSecret(secretKey);
     }
 
