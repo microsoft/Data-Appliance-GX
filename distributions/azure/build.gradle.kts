@@ -48,37 +48,37 @@ val createDockerfile by tasks.creating(Dockerfile::class) {
 
     readGithubConfig(this, this@Build_gradle)
 
+    doLast {
+        //read config for azure keyvault
+        val configFile = project.file(azurePropertiesFile)
+        if (!configFile.exists()) {
+            throw IllegalArgumentException("No $azurePropertiesFile file was found! Aborting...")
+        }
+        val fis = FileInputStream(configFile)
+        val prop = Properties()
+        prop.load(fis)
 
-    //read config for azure keyvault
-    val configFile = project.file(azurePropertiesFile)
-    if (!configFile.exists()) {
-        throw IllegalArgumentException("No $azurePropertiesFile file was found! Aborting...")
+        val clientId = prop.getProperty("dagx.vault.clientid")
+        val tenantId = prop.getProperty("dagx.vault.tenantid")
+        val certFile = prop.getProperty("dagx.vault.certificate")
+        val vaultName = prop.getProperty("dagx.vault.name")
+
+        if (!project.file(certFile).exists())
+            throw kotlin.IllegalArgumentException("File $certFile does not exist!")
+
+        from("openjdk:11-jre-slim")
+        runCommand("mkdir /app")
+        copyFile("./build/libs/dagx-azure.jar", "/app/dagx-azure.jar")
+
+        copyFile(certFile, "/app/azure-vault-cert.pfx")
+
+        environmentVariable("DAGX_VAULT_CLIENTID", clientId)
+        environmentVariable("DAGX_VAULT_TENANTID", tenantId)
+        environmentVariable("DAGX_VAULT_CERTIFICATE", "/app/azure-vault-cert.pfx")
+        environmentVariable("DAGX_VAULT_NAME", vaultName)
+        exposePort(8181)
+        entryPoint("java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/dagx-azure.jar")
     }
-    val fis = FileInputStream(configFile)
-    val prop = Properties()
-    prop.load(fis)
-
-    val clientId = prop.getProperty("dagx.vault.clientid")
-    val tenantId = prop.getProperty("dagx.vault.tenantid")
-    val certFile = prop.getProperty("dagx.vault.certificate")
-    val vaultName = prop.getProperty("dagx.vault.name")
-
-    if (!project.file(certFile).exists())
-        throw kotlin.IllegalArgumentException("File $certFile does not exist!")
-
-
-    from("openjdk:11-jre-slim")
-    runCommand("mkdir /app")
-    copyFile("./build/libs/dagx-azure.jar", "/app/dagx-azure.jar")
-
-    copyFile(certFile, "/app/azure-vault-cert.pfx")
-
-    environmentVariable("DAGX_VAULT_CLIENTID", clientId)
-    environmentVariable("DAGX_VAULT_TENANTID", tenantId)
-    environmentVariable("DAGX_VAULT_CERTIFICATE", "/app/azure-vault-cert.pfx")
-    environmentVariable("DAGX_VAULT_NAME", vaultName)
-    exposePort(8181)
-    entryPoint("java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/app/dagx-azure.jar")
 }
 
 // build the image
