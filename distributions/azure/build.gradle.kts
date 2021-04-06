@@ -101,7 +101,7 @@ val createAzureContainer by tasks.creating(DockerCreateContainer::class) {
     hostConfig.portBindings.set(listOf("8181:8181"))
     hostConfig.autoRemove.set(true)
     containerName.set("dagx-azure")
-}git 
+}
 
 // start runtime azure in docker
 val startAzure by tasks.creating(DockerStartContainer::class) {
