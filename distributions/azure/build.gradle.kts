@@ -66,7 +66,8 @@ val createDockerfile by tasks.creating(Dockerfile::class) {
     val certFile = prop.getProperty("dagx.vault.certificate", "")
     val vaultName = prop.getProperty("dagx.vault.name", "")
 
-    if (certFile != "" && !project.file(certFile).exists()) {
+    val certFileExists = certFile != "" && !project.file(certFile).exists()
+    if (certFileExists) {
 //        throw kotlin.IllegalArgumentException("File $certFile does not exist!")
         println("WARNING: certificate file not found! Certificate needs to be copied manually to /app/azure-vault-cert.pfx!")
     }
@@ -76,7 +77,8 @@ val createDockerfile by tasks.creating(Dockerfile::class) {
     runCommand("mkdir /app")
     copyFile("./build/libs/dagx-azure.jar", "/app/dagx-azure.jar")
 
-    copyFile(certFile, "/app/azure-vault-cert.pfx")
+    if (certFileExists)
+        copyFile(certFile, "/app/azure-vault-cert.pfx")
 
     environmentVariable("DAGX_VAULT_CLIENTID", clientId)
     environmentVariable("DAGX_VAULT_TENANTID", tenantId)
