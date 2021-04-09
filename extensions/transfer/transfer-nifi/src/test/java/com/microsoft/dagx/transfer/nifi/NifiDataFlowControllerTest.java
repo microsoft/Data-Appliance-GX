@@ -10,9 +10,7 @@ import com.microsoft.dagx.spi.types.domain.metadata.DataEntry;
 import com.microsoft.dagx.spi.types.domain.metadata.DataEntryExtensions;
 import com.microsoft.dagx.spi.types.domain.metadata.GenericDataEntryExtensions;
 import com.microsoft.dagx.spi.types.domain.transfer.DataRequest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.util.UUID;
 
@@ -26,11 +24,18 @@ class NifiDataFlowControllerTest {
     private Vault vault;
 
 
+    @BeforeAll
+    public static void prepare(){
+        //todo: spin up dockerized nifi
+        //todo: spin up Azure Container Storage
+    }
+
     @BeforeEach
     void setUp() {
+
         Monitor monitor = new Monitor() {
         };
-        NifiTransferManagerConfiguration config = NifiTransferManagerConfiguration.Builder.newInstance().url("https://gaiax-nifi.westeurope.cloudapp.azure.com")
+        NifiTransferManagerConfiguration config = NifiTransferManagerConfiguration.Builder.newInstance().url("http://localhost:8888")
                 .build();
         TypeManager typeManager = new TypeManager();
         typeManager.registerTypes(DataRequest.class);
@@ -42,7 +47,7 @@ class NifiDataFlowControllerTest {
     }
 
     @Test
-    @Disabled("disabled until https://github.com/microsoft/Data-Appliance-GX/issues/30 is done")
+//    @Disabled("disabled until https://github.com/microsoft/Data-Appliance-GX/issues/30 is done")
     void initiateFlow() {
         var ext = GenericDataEntryExtensions.Builder.newInstance().property("type", "AzureStorage")
                 .property("account", "gxfilestore")
@@ -70,6 +75,7 @@ class NifiDataFlowControllerTest {
 
         //assert
         assertEquals(ResponseStatus.OK, response.getStatus());
+        //todo: verify that the "bike_vey_new.jpg" is actually in the storage
     }
 
     @Test
@@ -102,5 +108,11 @@ class NifiDataFlowControllerTest {
         replay(vault);
 
         assertThrows(DagxException.class, () -> controller.initiateFlow(dataRequest), "No NiFi credentials found in Vault!");
+    }
+
+    @AfterAll
+    public static void winddown(){
+        //todo: kill Azure Container Storage
+        //todo: kill dockerized nifi
     }
 }
