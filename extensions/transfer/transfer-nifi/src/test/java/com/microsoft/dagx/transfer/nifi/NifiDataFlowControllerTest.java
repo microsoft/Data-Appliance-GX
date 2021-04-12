@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
 
+import static com.microsoft.dagx.spi.util.ConfigurationFunctions.propOrEnv;
 import static org.easymock.EasyMock.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -32,7 +33,7 @@ class NifiDataFlowControllerTest {
 
     private final static String nifiHost = "http://localhost:8080";
     private final static String storageAccount = "nififlowtest";
-    private final static String storageAccountKey = "p8xcDBKin2DzgEIpS0vOFGNxjeLyVsKcpon/fRCI/Qailuw7Jlp2WxM2dk/UB6RX9SKxR7HBMLLoUQpUdT/VCw==";
+    private static String storageAccountKey = null;
 
     private static String blobName;
 
@@ -68,6 +69,11 @@ class NifiDataFlowControllerTest {
 
         // create azure storage container
         containerName = "nifi-itest-" + UUID.randomUUID();
+
+        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", "p8xcDBKin2DzgEIpS0vOFGNxjeLyVsKcpon/fRCI/Qailuw7Jlp2WxM2dk/UB6RX9SKxR7HBMLLoUQpUdT/VCw==");
+        if (storageAccountKey == null) {
+            throw new RuntimeException("No environment variable found AZ_STORAGE_KEY!");
+        }
 
         var bsc = new BlobServiceClientBuilder().connectionString("DefaultEndpointsProtocol=https;AccountName=nififlowtest;AccountKey=" + storageAccountKey + ";EndpointSuffix=core.windows.net")
                 .buildClient();
@@ -175,7 +181,6 @@ class NifiDataFlowControllerTest {
         }
 
         assertEquals(bulletinSize + 1, client.getBulletinBoard().bulletins.size());
-        //todo: verify that the "bike_vey_new.jpg" is actually in the storage
     }
 
     @Test
