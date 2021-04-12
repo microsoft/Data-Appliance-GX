@@ -70,7 +70,7 @@ class NifiDataFlowControllerTest {
         containerName = "nifi-itest-" + UUID.randomUUID();
 
         var bsc = new BlobServiceClientBuilder().connectionString("DefaultEndpointsProtocol=https;AccountName=nififlowtest;AccountKey=" + storageAccountKey + ";EndpointSuffix=core.windows.net")
-                .buildClient(); 
+                .buildClient();
         blobContainerClient = bsc.createBlobContainer(containerName);
 
         // upload blob to storage
