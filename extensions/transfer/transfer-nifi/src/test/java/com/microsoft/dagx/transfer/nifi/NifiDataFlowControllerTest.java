@@ -1,5 +1,9 @@
 package com.microsoft.dagx.transfer.nifi;
 
+import com.azure.core.http.rest.PagedIterable;
+import com.azure.storage.blob.BlobContainerClient;
+import com.azure.storage.blob.BlobServiceClientBuilder;
+import com.azure.storage.blob.models.BlobItem;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.microsoft.dagx.spi.DagxException;
 import com.microsoft.dagx.spi.monitor.Monitor;
@@ -12,12 +16,11 @@ import com.microsoft.dagx.spi.types.domain.metadata.DataEntryExtensions;
 import com.microsoft.dagx.spi.types.domain.metadata.GenericDataEntryExtensions;
 import com.microsoft.dagx.spi.types.domain.transfer.DataRequest;
 import com.microsoft.dagx.transfer.nifi.api.NifiApiClient;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.io.File;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
@@ -27,13 +30,18 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class NifiDataFlowControllerTest {
 
+    private final static String nifiHost = "http://localhost:8080";
+    private final static String storageAccount = "nififlowtest";
+    private final static String storageAccountKey = "p8xcDBKin2DzgEIpS0vOFGNxjeLyVsKcpon/fRCI/Qailuw7Jlp2WxM2dk/UB6RX9SKxR7HBMLLoUQpUdT/VCw==";
+
+    private static String blobName;
+
     private NifiDataFlowController controller;
     private Vault vault;
     private static TypeManager typeManager;
-    private String storageAccount;
-    private String containerName;
-    private static String storageAccountKey;
+    private static String containerName;
     private static NifiApiClient client;
+    private static BlobContainerClient blobContainerClient;
 
     @BeforeAll
     public static void prepare() throws Exception {
@@ -44,7 +52,7 @@ class NifiDataFlowControllerTest {
 
         var f = Thread.currentThread().getContextClassLoader().getResource("TwoClouds.xml");
         var file = new File(Objects.requireNonNull(f).toURI());
-        client = new NifiApiClient("http://localhost:8080", typeManager);
+        client = new NifiApiClient(nifiHost, typeManager);
         String processGroup = "root";
         try {
             var templateId = client.uploadTemplate(processGroup, file);
@@ -57,15 +65,27 @@ class NifiDataFlowControllerTest {
             client.startControllerService(controllerServiceId, version);
             client.startProcessGroup(processGroup);
         }
-        //todo: spin up Azure Container Storage
-        storageAccountKey = "p8xcDBKin2DzgEIpS0vOFGNxjeLyVsKcpon/fRCI/Qailuw7Jlp2WxM2dk/UB6RX9SKxR7HBMLLoUQpUdT/VCw==";
+
+        // create azure storage container
+        containerName = "nifi-itest-" + UUID.randomUUID();
+
+        var bsc = new BlobServiceClientBuilder().connectionString("DefaultEndpointsProtocol=https;AccountName=nififlowtest;AccountKey=" + storageAccountKey + ";EndpointSuffix=core.windows.net")
+                .buildClient(); 
+        blobContainerClient = bsc.createBlobContainer(containerName);
+
+        // upload blob to storage
+
+        blobName = "testimage.jpg";
+        var blobClient = blobContainerClient.getBlobClient(blobName);
+        URL testImageStream = Thread.currentThread().getContextClassLoader().getResource(blobName);
+        String absolutePath = Objects.requireNonNull(Paths.get(testImageStream.toURI())).toString();
+        blobClient.uploadFromFile(absolutePath, true);
+
     }
 
     @BeforeEach
     void setUp() {
 
-        storageAccount = "nififlowtest";
-        containerName = "nifi-transfer";
 
         Monitor monitor = new Monitor() {
         };
@@ -80,12 +100,12 @@ class NifiDataFlowControllerTest {
     }
 
     @Test
-    void initiateFlow() {
-        var initialSize = client.getBulletinBoard().bulletins.size();
+    @Timeout(value = 10)
+    void initiateFlow() throws InterruptedException {
         var ext = GenericDataEntryExtensions.Builder.newInstance().property("type", "AzureStorage")
                 .property("account", storageAccount)
                 .property("container", containerName)
-                .property("blobname", "sportster48.jpg")
+                .property("blobname", blobName)
                 .property("key", storageAccountKey)
                 .build();
 
@@ -108,11 +128,18 @@ class NifiDataFlowControllerTest {
 
         //assert
         assertEquals(ResponseStatus.OK, response.getStatus());
-        //todo: verify that the "bike_vey_new.jpg" is actually in the storage
+
+
+        // will fail if new blob is not there after 10 seconds
+        while (listBlobs().stream().noneMatch(blob -> blob.getName().equals("bike_very_new.jpg"))) {
+            Thread.sleep(500);
+        }
+
     }
 
     @Test
-    void initiateFlow_sourceNotFound() {
+    @Timeout(10)
+    void initiateFlow_sourceNotFound() throws InterruptedException {
         var bulletinSize = client.getBulletinBoard().bulletins.size();
 
         var ext = GenericDataEntryExtensions.Builder.newInstance().property("type", "AzureStorage")
@@ -142,12 +169,10 @@ class NifiDataFlowControllerTest {
         //assert
         assertEquals(ResponseStatus.OK, response.getStatus());
 
-        // will fail the test if bulletinSize has not increased by 1 within 5 seconds
-        assertTimeoutPreemptively(Duration.ofMillis(5000), () -> {
-            while (bulletinSize + 1 != client.getBulletinBoard().bulletins.size()) {
-                Thread.sleep(10);
-            }
-        });
+        // will fail the test if bulletinSize has not increased by 1 within 10 seconds
+        while (bulletinSize + 1 != client.getBulletinBoard().bulletins.size()) {
+            Thread.sleep(100);
+        }
 
         assertEquals(bulletinSize + 1, client.getBulletinBoard().bulletins.size());
         //todo: verify that the "bike_vey_new.jpg" is actually in the storage
@@ -187,8 +212,13 @@ class NifiDataFlowControllerTest {
 
     @AfterAll
     public static void winddown() {
-        //todo: kill Azure Container Storage
+        blobContainerClient.delete();
+    }
 
-        //todo: kill dockerized nifi
+    private PagedIterable<BlobItem> listBlobs() {
+        var bsc = new BlobServiceClientBuilder().connectionString("DefaultEndpointsProtocol=https;AccountName=nififlowtest;AccountKey=" + storageAccountKey + ";EndpointSuffix=core.windows.net")
+                .buildClient();
+        var bcc = bsc.getBlobContainerClient(containerName);
+        return bcc.listBlobs();
     }
 }
