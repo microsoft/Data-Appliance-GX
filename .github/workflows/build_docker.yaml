@@ -24,7 +24,7 @@ jobs:
         run: ./gradlew compileJava
 
       - name: Gradle Test
-        run: ./gradlew test
+        run: ./gradlew test -DAZ_STORAGE_KEY=${{secrets.AZ_STORAGE_KEY}} -DNIFI_API_AUTH=${{secrets.NIFI_API_AUTH}}
 
   build-demo:
     needs: verify

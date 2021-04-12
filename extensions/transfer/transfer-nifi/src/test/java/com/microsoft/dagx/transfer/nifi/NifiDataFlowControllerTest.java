@@ -70,7 +70,7 @@ class NifiDataFlowControllerTest {
         // create azure storage container
         containerName = "nifi-itest-" + UUID.randomUUID();
 
-        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", "p8xcDBKin2DzgEIpS0vOFGNxjeLyVsKcpon/fRCI/Qailuw7Jlp2WxM2dk/UB6RX9SKxR7HBMLLoUQpUdT/VCw==");
+        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", null);
         if (storageAccountKey == null) {
             throw new RuntimeException("No environment variable found AZ_STORAGE_KEY!");
         }
@@ -100,7 +100,11 @@ class NifiDataFlowControllerTest {
         typeManager.registerTypes(DataRequest.class);
 
         vault = createMock(Vault.class);
-        expect(vault.resolveSecret(NifiDataFlowController.NIFI_CREDENTIALS)).andReturn("Basic dGVzdHVzZXJAZ2FpYXguY29tOmdYcHdkIzIwMiE=");
+        var nifiAuth= propOrEnv("NIFI_API_AUTH", null);
+        if(nifiAuth == null){
+            throw new RuntimeException("No environment variable found NIFI_API_AUTH!");
+        }
+        expect(vault.resolveSecret(NifiDataFlowController.NIFI_CREDENTIALS)).andReturn(nifiAuth);
         replay(vault);
         controller = new NifiDataFlowController(config, typeManager, monitor, vault);
     }
