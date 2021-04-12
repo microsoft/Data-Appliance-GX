@@ -13,6 +13,7 @@ public class AzureStorageTarget implements DataTarget {
     private String blobname;
     private String sas;
     private String container;
+    private String key;
 
     private AzureStorageTarget(){}
 
@@ -34,6 +35,10 @@ public class AzureStorageTarget implements DataTarget {
 
     public String getContainer() {
         return container;
+    }
+
+    public String getKey() {
+        return key;
     }
 
     @JsonPOJOBuilder(withPrefix = "")
@@ -72,6 +77,11 @@ public class AzureStorageTarget implements DataTarget {
 
         public Builder container(String container) {
             target.container = container;
+            return this;
+        }
+
+        public Builder key(String key) {
+            target.key = key;
             return this;
         }
     }
