@@ -12,11 +12,6 @@ jobs:
         ports:
           - 8080:8080
           - 8888:8888
-        options: >-
-          --health-cmd "curl -X GET http://localhost:8080/nifi-api/system-diagnostics"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
 
     steps:
       - uses: actions/checkout@v2
