@@ -19,6 +19,9 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: '11'
+        env:
+          AZ_STORAGE_KEY: ${{secrets.AZ_STORAGE_KEY}}
+          NIFI_API_AUTH: ${{secrets.NIFI_API_AUTH}}
 
       - name: Gradle compile
         run: ./gradlew compileJava
