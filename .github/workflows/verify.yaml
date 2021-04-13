@@ -32,7 +32,6 @@ jobs:
   build-demo:
     needs: verify
     runs-on: ubuntu-latest
-    if: "github.ref == refs/heads/main" # do not build on feature branches
 
     steps:
       - uses: actions/checkout@v2
@@ -47,7 +46,6 @@ jobs:
   build-azure:
     needs: verify
     runs-on: ubuntu-latest
-    if: "github.ref == refs/heads/main" # do not build on feature branches
 
     steps:
       - uses: actions/checkout@v2
