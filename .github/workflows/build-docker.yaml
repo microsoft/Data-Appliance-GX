@@ -8,7 +8,6 @@ on:
 
 jobs:
   build-demo:
-    needs: verify
     runs-on: ubuntu-latest
 
     steps:
@@ -22,7 +21,6 @@ jobs:
         run: ./gradlew clean buildDemo
 
   build-azure:
-    needs: verify
     runs-on: ubuntu-latest
 
     steps:
