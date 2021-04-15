@@ -1,9 +1,13 @@
 #!/bin/bash
-
+suffix=''
 if [ -z "$1" ]
     then
-        echo "please supply your subscription ID as first argument!"
+        suffix=$(date +%s)
+    else
+        suffix=$1
 fi
+
+echo "suffix is $suffix"
 
 if ! command -v openssl &> /dev/null
 then 
@@ -15,7 +19,7 @@ then
     echo "jq (Json Processor) is not installed - aborting!"
 fi
 
-DISPLAYNAME=PrimaryIdentity
+DISPLAYNAME=PrimaryIdentity-$suffix
 if test -f "cert.pem" ; then
     echo "certificate exists - reusing"
 else
@@ -49,13 +53,13 @@ spId=$(echo $spJson | jq -r '.objectId')
 # az ad app update --id $objectId --required-resource-access @manifest.json
 
 # create a resource group
-dt=$(date +%s)
-rgName=dagx-$dt
+
+rgName=dagx-$suffix
 echo "create resource group $rgName"
 az group create --name $rgName --location westeurope
 
 # provision keyvault
-keyvaultName=DagxKeyVault-$dt
+keyvaultName=DagxKeyVault-$suffix
 echo "provision key vault $keyvaultName and assign roles"
 az keyvault create --enable-rbac-authorization -g $rgName -n $keyvaultName -l westeurope 
 keyVaultId=$(az keyvault list -g $rgName | jq -r '.[0].id')
@@ -66,7 +70,7 @@ currentUserOid=$(az ad signed-in-user show | jq -r '.objectId')
 az role assignment create --role "Key Vault Administrator" --scope $keyVaultId --assignee $currentUserOid
 
 # provision storage account 
-saName=dagxblobstore$dt
+saName=dagxblobstore$suffix
 saJson=$(az storage account create --name $saName -g $rgName --https-only true --kind BlobStorage -l westeurope --min-tls-version TLS1_2 --sku Standard_LRS --access-tier hot)
 
 ## let keyvault handle the storage account's key regeneration and store an SAS token definition

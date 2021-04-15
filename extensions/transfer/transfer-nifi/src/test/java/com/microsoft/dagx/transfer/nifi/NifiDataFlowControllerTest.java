@@ -79,7 +79,7 @@ class NifiDataFlowControllerTest {
         }
 
         try {
-            var bsc = new BlobServiceClientBuilder().connectionString("DefaultEndpointsProtocol=https;AccountName=nififlowtest;AccountKey=" + storageAccountKey + ";EndpointSuffix=core.windows.net")
+            var bsc = new BlobServiceClientBuilder().connectionString("DefaultEndpointsProtocol=https;AccountName=dagxblobstoreitest;AccountKey=" + storageAccountKey + ";EndpointSuffix=core.windows.net")
                     .buildClient();
             blobContainerClient = bsc.createBlobContainer(containerName);
         } catch (BlobStorageException ex) {
