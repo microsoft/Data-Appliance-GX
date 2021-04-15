@@ -1,46 +1,38 @@
 package com.microsoft.dagx.security.azure;
 
-import com.azure.resourcemanager.keyvault.models.Vault;
-import com.azure.resourcemanager.resources.models.ResourceGroup;
-import com.microsoft.dagx.security.azure.mgmt.TestResourceManager;
 import com.microsoft.dagx.spi.monitor.Monitor;
 import com.microsoft.dagx.spi.security.VaultResponse;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@Disabled("until we have a dedicated test vault in place")
 public class AzureVaultIntegrationTest {
 
-    private static TestResourceManager resourceManager;
-    private static ResourceGroup rg;
     private static AzureVault azureVault;
     private String secretKey;
 
     @BeforeAll
-    public static void setupAzure() throws IOException {
+    public static void setupAzure() throws IOException, URISyntaxException {
         var resStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("azurecredentials.properties");
         var props = new Properties();
         props.load(resStream);
 
-        var clientId = props.getProperty("clientId");
-        var tenantId = props.getProperty("tenantId");
-        var clientSecret = props.getProperty("clientSecret");
-        var subsciptionId = props.getProperty("subscriptionId");
+        var clientId = props.getProperty("dagx.vault.clientid");
+        var tenantId = props.getProperty("dagx.vault.tenantid");
+        var vaultName = props.getProperty("dagx.vault.name");
+        var certfile = props.getProperty("dagx.vault.certificate");
+        var certPath= Thread.currentThread().getContextClassLoader().getResource(certfile).toURI().getPath();
 
-
-        resourceManager = new TestResourceManager(clientId, tenantId, clientSecret, subsciptionId);
-
-        rg = resourceManager.createRandomResourceGroup();
-
-        Vault vault = resourceManager.deployVault(rg, clientId);
-
-        azureVault = AzureVault.authenticateWithSecret(new LoggerMonitor(), clientId, tenantId, clientSecret, vault.name());
+        azureVault = AzureVault.authenticateWithCertificate(new LoggerMonitor(), clientId, tenantId, certPath, vaultName);
     }
 
     @BeforeEach
@@ -98,21 +90,16 @@ public class AzureVaultIntegrationTest {
         azureVault.deleteSecret(secretKey);
     }
 
-    @AfterAll
-    public static void cleanupAzure() {
-        resourceManager.deleteResourceGroup(rg);
-    }
-
-
     private static class LoggerMonitor implements Monitor {
         private final Logger logger = LoggerFactory.getLogger(LoggerMonitor.class);
 
         @Override
         public void info(String message, Throwable... errors) {
-            if (errors == null || errors.length == 0)
+            if (errors == null || errors.length == 0) {
                 logger.info(message);
-            else
+            } else {
                 logger.error(message);
+            }
         }
     }
 }
