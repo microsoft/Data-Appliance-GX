@@ -61,8 +61,33 @@ az keyvault create --enable-rbac-authorization -g $rgName -n $keyvaultName -l we
 keyVaultId=$(az keyvault list -g $rgName | jq -r '.[0].id')
 az role assignment create --role "Key Vault Secrets Officer" --scope $keyVaultId --assignee $appId
 
+# assign current user as admin to vault
+currentUserOid=$(az ad signed-in-user show | jq -r '.objectId')
+az role assignment create --role "Key Vault Administrator" --scope $keyVaultId --assignee $currentUserOid
+
 # provision storage account 
-saJson=$(az storage account create --name dagxblobstore -g $rgName --https-only true --kind BlobStorage -l westeurope --min-tls-version TLS1_2 --sku Standard_LRS --access-tier hot)
+saName=dagxblobstore$dt
+saJson=$(az storage account create --name $saName -g $rgName --https-only true --kind BlobStorage -l westeurope --min-tls-version TLS1_2 --sku Standard_LRS --access-tier hot)
+
+## let keyvault handle the storage account's key regeneration and store an SAS token definition
+## if we wanna use that feature, we can uncomment the next 5 lines
+
+# saId=$(echo $saJson | jq -r '.id')
+# az role assignment create --role "Storage Account Key Operator Service Role" --scope $saId --assignee cfa8b339-82a2-471a-a3c9-0fc0be7a4093
+# az keyvault storage add --vault-name $keyvaultName -n $saName --active-key-name key1 --auto-regenerate-key --regeneration-period P90D --resource-id $saId
+# sas=$(az storage account generate-sas --expiry 2021-01-05 --permission rwdl --resource-type co --services b --https-only --account-name $saName --account-key 00000000)
+# az keyvault storage sas-definition create --vault-name $keyVaultName --account-name $saName -n DataTransferDefinition --validity-period P2D --sas-type service --templateUri $sas
+
+# Store storage account key1 and key2 in vault
+keyJson=$(az storage account keys list -n $saName)
+key1=$(echo $keyJson | jq -r '.[0].value')
+key2=$(echo $keyJson | jq -r '.[1].value')
+az keyvault secret set --name "$saName-key1" --vault-name $keyvaultName --value $key1
+az keyvault secret set --name "$saName-key2" --vault-name $keyvaultName --value $key2
+echo "storage account keys successfully stored in vault"
+
+echo "remove role assignment for current user"
+az role assignment delete --role "Key Vault Administrator" --scope $keyVaultId --assignee $currentUserOid
 
 # some output:
 echo "certificate: ./cert.pfx and ./cert.pem"
@@ -72,8 +97,8 @@ echo "tenant-id: $tenantId"
 echo "resource-group: $rgName"
 
 # cleanup
-echo 'Press a to cleanup resources, any other key to quit...'
-read -n 1 -r -s -p k <&1 
+echo 'Press q to cleanup resources, any other key to quit...'
+read -n 1 k <&1 
 
 if [[ $k = q ]] ; then
 
