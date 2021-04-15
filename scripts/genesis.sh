@@ -19,7 +19,7 @@ then
     echo "jq (Json Processor) is not installed - aborting!"
 fi
 
-DISPLAYNAME=PrimaryIdentity
+DISPLAYNAME=PrimaryIdentity-$suffix
 if test -f "cert.pem" ; then
     echo "certificate exists - reusing"
 else
