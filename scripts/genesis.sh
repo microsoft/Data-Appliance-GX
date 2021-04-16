@@ -92,6 +92,13 @@ fi
 if ! command -v jq &> /dev/null
 then
     echo "jq (a Json Processor) is not installed - aborting!"
+    exit 1
+fi
+
+if ! command -v az &> /dev/null
+then
+    echo "Azure CLI not installed, please install and login with your AD credentials!"
+    exit 2
 fi
 
 
