@@ -7,6 +7,7 @@ function createAppReg(){
     appRegistrationName=$displayName
     echo "provision app registration"
     az ad app create --display-name "$appRegistrationName" --key-type AsymmetricX509Cert --available-to-other-tenants false > /dev/null
+    sleep 5
     appJson=$(az ad app list --display-name $appRegistrationName)
     objectId=$(echo $appJson | jq -r '.[0].objectId' )
     appId=$(echo $appJson | jq -r '.[0].appId' )
@@ -184,7 +185,7 @@ if [[ $k = q ]] ; then
     az ad app delete --id $nifiAppObjectId
     echo "deleting resource groups"
     az group delete -n $rgName -y
-    az group delete -n NetworkWatcher_$region
+    az group delete -n NetworkWatcher_$region -y
     echo "purging vault $keyvaultName"
     az keyvault purge --name $keyvaultName
     echo "cleanup done"
