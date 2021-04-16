@@ -6,11 +6,6 @@ function createAppReg() {
   description=$3
   numArgs=$#
 
-
-  echo "dpn: $displayName"
-  echo "cf: $certFile"
-  echo "des: $description"
-
   appRegistrationName=$displayName
   echo "provision app registration"
   az ad app create --display-name "$appRegistrationName" --key-type AsymmetricX509Cert --available-to-other-tenants false >/dev/null
@@ -22,7 +17,7 @@ function createAppReg() {
   if [ $numArgs -eq 2 ]; then
     # interpret certFile as certificate path
     # upload the public key to the app reg
-    echo "upload certificate"
+    echo "upload certificate of $objectId"
     credJson=$(az ad app credential reset --id $objectId --cert @$certFile)
   else
     # interpret certfile as secret
