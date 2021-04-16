@@ -16,7 +16,7 @@ fi
 
 if ! command -v jq &> /dev/null
 then
-    echo "jq (Json Processor) is not installed - aborting!"
+    echo "jq (a Json Processor) is not installed - aborting!"
 fi
 
 DISPLAYNAME=PrimaryIdentity-$suffix
@@ -53,7 +53,6 @@ spId=$(echo $spJson | jq -r '.objectId')
 # az ad app update --id $objectId --required-resource-access @manifest.json
 
 # create a resource group
-
 rgName=dagx-$suffix
 echo "create resource group $rgName"
 az group create --name $rgName --location westeurope
@@ -92,6 +91,34 @@ echo "storage account keys successfully stored in vault"
 
 echo "remove role assignment for current user"
 az role assignment delete --role "Key Vault Administrator" --scope $keyVaultId --assignee $currentUserOid
+
+# deploying AKS
+
+region=$(cat aks/parameters.json | jq -r '.parameters.location.value')
+aksName=$(cat aks/parameters.json | jq -r '.parameters.resourceName.value')
+echo "deploy AKS named $aksName in $rgName"
+mcgName="MC_${rgName}_${aksName}_${region}"
+echo "note that there will at least be one additional resource group named $mcgName"
+
+az deployment group create -g $rgName -n DeployAks-$suffix --template-file aks/template.json --parameters @aks/parameters.json
+
+# create a dns name label in the public IP address resource
+# 1. get load balancer's public IP addresses:
+publicIpIds=$(az network lb show -g $mcgName -n kubernetes --query "frontendIpConfigurations[].publicIpAddress.id" --out tsv)
+# 1.1 iterate over all public IP addresses,  read their IP/FQDN pairs
+# 2. filter out the one starting with "kubernetes-"
+publicIpName=""
+while read publicIpId; do 
+    if [[ $publicIpId  == *"/kubernetes-"* ]] ; then    
+        publicIpName=$(echo $publicIpIds |rev | cut -d'/' -f 1 | rev)
+        az network public-ip show --ids "${publicIpId}" --query "{ ipAddress: ipAddress, fqdn: dnsSettings.fqdn }" --out tsv 
+    fi
+done <<< "${publicIpIds}" 
+
+# set the public IP's dns name
+dnsName=$rgName
+echo "setting DNS label of IP $publicIpName -> $dnsName"
+az network public-ip update --dns-name $dnsName --allocation-method Static -n $publicIpName -g $mcgName
 
 # some output:
 echo "certificate: ./cert.pfx and ./cert.pem"
