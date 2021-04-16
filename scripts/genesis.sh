@@ -1,4 +1,79 @@
 #!/bin/bash
+
+function createAppReg(){
+    displayName=$1
+    certFile=$2
+
+    appRegistrationName=$displayName
+    echo "provision app registration"
+    az ad app create --display-name "$appRegistrationName" --key-type AsymmetricX509Cert --available-to-other-tenants false > /dev/null
+    appJson=$(az ad app list --display-name $appRegistrationName)
+    objectId=$(echo $appJson | jq -r '.[0].objectId' )
+    appId=$(echo $appJson | jq -r '.[0].appId' )
+
+    # upload the public key to the app reg
+    echo "upload certificate"
+    credJson=$(az ad app credential reset --id $objectId --cert @$certFile)
+    clientId=$(echo $credJson | jq -r '.appId')
+    tenantId=$(echo $credJson | jq -r '.tenant')
+
+    # create a service principial for the App Reg - THIS IS THE IMPORTANT PART!
+    echo "create service principal"
+    az ad sp create --id $objectId
+}
+
+function createStorageAccount(){
+    accountName=$1
+    rgName=$2
+
+    saJson=$(az storage account create --name $accountName -g $rgName --https-only true --kind BlobStorage -l westeurope --min-tls-version TLS1_2 --sku Standard_LRS --access-tier hot)
+}
+
+function storeKeysInVault() {
+    storageAccountName=$1
+    keyVaultName=$2
+
+    keyJson=$(az storage account keys list -n $storageAccountName)
+    key1=$(echo $keyJson | jq -r '.[0].value')
+    key2=$(echo $keyJson | jq -r '.[1].value')
+    az keyvault secret set --name "$storageAccountName-key1" --vault-name $keyvaultName --value $key1
+    az keyvault secret set --name "$storageAccountName-key2" --vault-name $keyvaultName --value $key2
+}
+
+function createAks(){
+  
+    suffix=$1
+    rgName=$2
+    templateDir=$3
+
+    region=$(cat aks/parameters.json | jq -r '.parameters.location.value')
+    aksName=$(cat aks/parameters.json | jq -r '.parameters.resourceName.value')
+    echo "deploy AKS named $aksName in $rgName"
+    mcgName="MC_${rgName}_${aksName}_${region}"
+    echo "note that there will at least be one additional resource group named $mcgName"
+
+    az deployment group create -g $rgName -n DeployAks-$suffix --template-file aks/template.json --parameters @aks/parameters.json
+
+    # create a dns name label in the public IP address resource
+    # 1. get load balancer's public IP addresses:
+    publicIpIds=$(az network lb show -g $mcgName -n kubernetes --query "frontendIpConfigurations[].publicIpAddress.id" --out tsv)
+    # 1.1 iterate over all public IP addresses,  read their IP/FQDN pairs
+    # 2. filter out the one starting with "kubernetes-"
+    publicIpName=""
+    while read publicIpId; do 
+        if [[ $publicIpId  == *"/kubernetes-"* ]] ; then    
+            publicIpName=$(echo $publicIpIds |rev | cut -d'/' -f 1 | rev)
+            az network public-ip show --ids "${publicIpId}" --query "{ ipAddress: ipAddress, fqdn: dnsSettings.fqdn }" --out tsv 
+        fi
+    done <<< "${publicIpIds}" 
+
+    # set the public IP's dns name
+    dnsName=$rgName
+    echo "setting DNS label of IP $publicIpName -> $dnsName"
+    az network public-ip update --dns-name $dnsName --allocation-method Static -n $publicIpName -g $mcgName
+}
+
+
 suffix=''
 if [ -z "$1" ]
     then
@@ -19,7 +94,7 @@ then
     echo "jq (a Json Processor) is not installed - aborting!"
 fi
 
-DISPLAYNAME=PrimaryIdentity-$suffix
+
 if test -f "cert.pem" ; then
     echo "certificate exists - reusing"
 else
@@ -32,25 +107,10 @@ else
 fi
 
 # provision an app registration for the primary identity
-echo "provision app registration"
-az ad app create --display-name "$DISPLAYNAME" --key-type AsymmetricX509Cert --available-to-other-tenants false > /dev/null
-appJson=$(az ad app list --display-name $DISPLAYNAME)
-objectId=$(echo $appJson | jq -r '.[0].objectId' )
-appId=$(echo $appJson | jq -r '.[0].appId' )
+createAppReg PrimaryIdentity-$suffix cert.pem
+primaryAppObjectId=$objectId
 
-# upload the public key to the app reg
-echo "upload certificate"
-credJson=$(az ad app credential reset --id $objectId --cert @cert.pem)
-clientId=$(echo $credJson | jq -r '.appId')
-tenantId=$(echo $credJson | jq -r '.tenant')
-
-# create a service principial for the App Reg - THIS IS THE IMPORTANT PART!
-echo "create service principal"
-spJson=$(az ad sp create --id $objectId)
-spId=$(echo $spJson | jq -r '.objectId')
-
-# request User.Read access
-# az ad app update --id $objectId --required-resource-access @manifest.json
+echo "primary app id is : $primaryAppObjectId"
 
 # create a resource group
 rgName=dagx-$suffix
@@ -70,7 +130,7 @@ az role assignment create --role "Key Vault Administrator" --scope $keyVaultId -
 
 # provision storage account 
 saName=dagxblobstore$suffix
-saJson=$(az storage account create --name $saName -g $rgName --https-only true --kind BlobStorage -l westeurope --min-tls-version TLS1_2 --sku Standard_LRS --access-tier hot)
+createStorageAccount $saName $rgName
 
 ## let keyvault handle the storage account's key regeneration and store an SAS token definition
 ## if we wanna use that feature, we can uncomment the next 5 lines
@@ -82,11 +142,8 @@ saJson=$(az storage account create --name $saName -g $rgName --https-only true -
 # az keyvault storage sas-definition create --vault-name $keyVaultName --account-name $saName -n DataTransferDefinition --validity-period P2D --sas-type service --templateUri $sas
 
 # Store storage account key1 and key2 in vault
-keyJson=$(az storage account keys list -n $saName)
-key1=$(echo $keyJson | jq -r '.[0].value')
-key2=$(echo $keyJson | jq -r '.[1].value')
-az keyvault secret set --name "$saName-key1" --vault-name $keyvaultName --value $key1
-az keyvault secret set --name "$saName-key2" --vault-name $keyvaultName --value $key2
+storeKeysInVault $saName $keyVaultName
+
 echo "storage account keys successfully stored in vault"
 
 echo "remove role assignment for current user"
@@ -94,31 +151,11 @@ az role assignment delete --role "Key Vault Administrator" --scope $keyVaultId -
 
 # deploying AKS
 
-region=$(cat aks/parameters.json | jq -r '.parameters.location.value')
-aksName=$(cat aks/parameters.json | jq -r '.parameters.resourceName.value')
-echo "deploy AKS named $aksName in $rgName"
-mcgName="MC_${rgName}_${aksName}_${region}"
-echo "note that there will at least be one additional resource group named $mcgName"
+createAks $suffix $rgName aks
 
-az deployment group create -g $rgName -n DeployAks-$suffix --template-file aks/template.json --parameters @aks/parameters.json
-
-# create a dns name label in the public IP address resource
-# 1. get load balancer's public IP addresses:
-publicIpIds=$(az network lb show -g $mcgName -n kubernetes --query "frontendIpConfigurations[].publicIpAddress.id" --out tsv)
-# 1.1 iterate over all public IP addresses,  read their IP/FQDN pairs
-# 2. filter out the one starting with "kubernetes-"
-publicIpName=""
-while read publicIpId; do 
-    if [[ $publicIpId  == *"/kubernetes-"* ]] ; then    
-        publicIpName=$(echo $publicIpIds |rev | cut -d'/' -f 1 | rev)
-        az network public-ip show --ids "${publicIpId}" --query "{ ipAddress: ipAddress, fqdn: dnsSettings.fqdn }" --out tsv 
-    fi
-done <<< "${publicIpIds}" 
-
-# set the public IP's dns name
-dnsName=$rgName
-echo "setting DNS label of IP $publicIpName -> $dnsName"
-az network public-ip update --dns-name $dnsName --allocation-method Static -n $publicIpName -g $mcgName
+# provision another service principal that will later be used for the Apache Nifi cluster
+createAppReg nifiSp-$suffix cert.pem
+nifiAppObjectId=$objectId
 
 # some output:
 echo "certificate: ./cert.pfx and ./cert.pem"
@@ -134,12 +171,15 @@ read -n 1 k <&1
 if [[ $k = q ]] ; then
 
     echo "cleaning up..."
-    echo "deleting app registration"
-    az ad app delete --id $objectId
-    echo "deleting resource group"
+    echo "deleting primary app registration"
+    az ad app delete --id $primaryAppObjectId
+    echo "deleting nifi app registration"
+    az ad app delete --id $nifiAppObjectId
+    echo "deleting resource groups"
     az group delete -n $rgName -y
+    az group delete -n NetworkWatcher_$region
     echo "purging vault $keyvaultName"
     az keyvault purge --name $keyvaultName
     echo "cleanup done"
-
 fi
+
