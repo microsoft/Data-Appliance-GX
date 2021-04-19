@@ -147,6 +147,7 @@ resource "azurerm_kubernetes_cluster" "dagx" {
 resource "azuread_application" "dagx-terraform-nifi-app" {
   display_name               = "Dagx-${var.resourcesuffix}-Nifi"
   available_to_other_tenants = false
+  reply_urls = [ "https://dagx-${var.resourcesuffix}.${var.location}.cloudapp.azure.com/nifi-api/access/oidc/callback" ]
 }
 
 resource "random_password" "password" {

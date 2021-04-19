@@ -4,9 +4,9 @@ nifi:
   authentication:
     openid:
       enabled: true
-      discoveryUrl: "https://login.microsoftonline.com/98549350-65f0-4ce1-849c-7d1ddf7f041b/v2.0/.well-known/openid-configuration"
-      clientId: "d7a2d456-1fc0-44c6-b99a-2dd202756e11"
-      clientSecret: "-08~CB~gUqcgKLP~83rZBiuz8s2h1w4P-7"
+      discoveryUrl: "https://login.microsoftonline.com/<TENANTID>/v2.0/.well-known/openid-configuration"
+      clientId: ""
+      clientSecret: ""
       additionalScopes: "profile"
       preferredJwsAlgorithm: ""
       claimIdentityingUser: ""
