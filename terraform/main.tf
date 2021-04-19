@@ -132,7 +132,7 @@ module "aks-cluster" {
 
 module "kubernetes-config" {
   depends_on = [module.aks-cluster]
-  source         = "./kubernetes-config"
+  source         = "nifi-config"
   cluster_name   = local.cluster_name
   kubeconfig     = data.azurerm_kubernetes_cluster.default.kube_config_raw
   resourcesuffix = var.resourcesuffix
