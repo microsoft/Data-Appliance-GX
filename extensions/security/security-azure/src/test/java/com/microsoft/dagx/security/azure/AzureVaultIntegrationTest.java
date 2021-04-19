@@ -20,11 +20,11 @@ import static org.junit.jupiter.api.Assertions.*;
 @EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 public class AzureVaultIntegrationTest {
 
-    private static final String id= UUID.randomUUID().toString();
-    private static final String secretKey1 = "testkey1_"+id;
-    private static final String secretKey2 = "testkey2_"+id;
-    private static final String secretKey3 = "testkey3_"+id;
-    private static final String secretKey4 = "testkey4_"+id;
+    private static final String id = UUID.randomUUID().toString();
+    private static final String secretKey1 = "testkey1" + id;
+    private static final String secretKey2 = "testkey2" + id;
+    private static final String secretKey3 = "testkey3" + id;
+    private static final String secretKey4 = "testkey4" + id;
     private static AzureVault azureVault;
 
     @BeforeAll
