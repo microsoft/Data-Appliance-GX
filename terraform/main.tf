@@ -3,29 +3,29 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = ">= 2.26"
+      version = ">= 2.42"
     }
     azuread = {
       source  = "hashicorp/azuread"
-      version = "1.4.0"
+      version = ">=1.4.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">=2.0.3"
+    }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.1.0"
     }
   }
-
-  required_version = ">= 0.14.9"
 }
 
-variable "resourcesuffix" {
-  description = "identifying string that is used in all azure resources"
-}
-variable "location" {
-  description = "geographic location of the Azure resources"
-  default     = "westeurope"
-}
+
 
 provider "azurerm" {
   features {
     key_vault {
-      purge_soft_delete_on_destroy = true
+      purge_soft_delete_on_destroy    = true
       recover_soft_deleted_key_vaults = true
     }
   }
@@ -33,6 +33,28 @@ provider "azurerm" {
 
 provider "azuread" {
   # Configuration options
+}
+
+provider "kubernetes" {
+  host                   = data.azurerm_kubernetes_cluster.default.kube_config.0.host
+  client_certificate     = base64decode(data.azurerm_kubernetes_cluster.default.kube_config.0.client_certificate)
+  client_key             = base64decode(data.azurerm_kubernetes_cluster.default.kube_config.0.client_key)
+  cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.default.kube_config.0.cluster_ca_certificate)
+}
+
+provider "helm" {
+  kubernetes {
+    host                   = data.azurerm_kubernetes_cluster.default.kube_config.0.host
+    client_certificate     = base64decode(data.azurerm_kubernetes_cluster.default.kube_config.0.client_certificate)
+    client_key             = base64decode(data.azurerm_kubernetes_cluster.default.kube_config.0.client_key)
+    cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.default.kube_config.0.cluster_ca_certificate)
+  }
+}
+
+data "azurerm_kubernetes_cluster" "default" {
+  depends_on          = [module.aks-cluster] # refresh cluster state before reading
+  name                = local.cluster_name
+  resource_group_name = local.cluster_name
 }
 
 resource "azurerm_resource_group" "rg" {
@@ -74,7 +96,7 @@ resource "azurerm_key_vault" "dagx-terraform-vault" {
 
   sku_name                  = "standard"
   enable_rbac_authorization = true
-  
+
 }
 
 # Role assignment so that the primary identity may access the vault
@@ -100,89 +122,20 @@ resource "azurerm_storage_account" "dagxblobstore" {
 #     key_vault_id = azurerm_key_vault.dagx-terraform-vault.id
 # }
 
-resource "azurerm_kubernetes_cluster" "dagx" {
-  name                = "dagx-${var.resourcesuffix}-aks1"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  dns_prefix          = "dagx-${var.resourcesuffix}-aks"
 
-  default_node_pool {
-    name               = "agentpool"
-    node_count         = 3
-    vm_size            = "Standard_D2_v2"
-    os_disk_size_gb    = 30
-    availability_zones = ["1", "2", "3"]
-    max_pods           = 110
-    type               = "VirtualMachineScaleSets"
-    os_disk_type       = "Managed"
-  }
 
-  identity {
-    type = "SystemAssigned"
-  }
-
-  network_profile {
-    load_balancer_sku = "standard"
-    network_plugin    = "kubenet"
-  }
-
-  addon_profile {
-    http_application_routing {
-      enabled = true
-    }
-    azure_policy {
-      enabled = false
-    }
-    kube_dashboard {
-      enabled = true
-    }
-  }
-
-  tags = {
-    Environment = "Test"
-  }
+module "aks-cluster" {
+  source         = "./aks-cluster"
+  cluster_name   = local.cluster_name
+  location       = var.location
 }
 
-# App registration for the loadbalancer
-resource "azuread_application" "dagx-terraform-nifi-app" {
-  display_name               = "Dagx-${var.resourcesuffix}-Nifi"
-  available_to_other_tenants = false
-  reply_urls = [ "https://dagx-${var.resourcesuffix}.${var.location}.cloudapp.azure.com/nifi-api/access/oidc/callback" ]
+module "kubernetes-config" {
+  depends_on = [module.aks-cluster]
+  source         = "./kubernetes-config"
+  cluster_name   = local.cluster_name
+  kubeconfig     = data.azurerm_kubernetes_cluster.default.kube_config_raw
+  resourcesuffix = var.resourcesuffix
+  tenant_id= data.azurerm_client_config.current.tenant_id
 }
-
-resource "random_password" "password" {
-  length           = 16
-  special          = true
-  override_special = "_%@"
-}
-
-resource "azuread_application_password" "dagx-terraform-nifi-app-secret" {
-  application_object_id = azuread_application.dagx-terraform-nifi-app.id
-  end_date              = "2099-01-01T01:02:03Z"
-  value                 = random_password.password.result
-}
-
-
-resource "azuread_service_principal" "dagx-terraform-nifi-app-sp" {
-  application_id               = azuread_application.dagx-terraform-nifi-app.application_id
-  app_role_assignment_required = false
-  tags                         = ["terraform"]
-}
-
-output "client_certificate" {
-  value = azurerm_kubernetes_cluster.dagx.kube_config.0.client_certificate
-}
-
-output "kube_config" {
-  value     = azurerm_kubernetes_cluster.dagx.kube_config_raw
-  sensitive = true
-}
-
-output "nifi_client_secret" {
-  value     = azuread_application_password.dagx-terraform-nifi-app-secret.value
-  sensitive = true
-}
-
-output "nifi_client_id" {
-  value = azuread_application.dagx-terraform-nifi-app.application_id
-}
+ 
