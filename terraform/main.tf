@@ -138,4 +138,3 @@ module "kubernetes-config" {
   resourcesuffix = var.resourcesuffix
   tenant_id= data.azurerm_client_config.current.tenant_id
 }
- 

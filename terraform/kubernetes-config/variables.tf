@@ -22,7 +22,7 @@ variable "resourcesuffix"{
 
 variable "location"{
     type= string
-    default="westeurop"
+    default="westeurope"
 }
 
 variable "tenant_id" {

@@ -51,8 +51,8 @@ resource "helm_release" "nifi" {
   name  = "dagx-nifi-release"
   chart = var.chart-dir
   values = [
-    "${file("nifi-chart/openid-values.yaml")}",
-  "${file("nifi-chart/secured-values-with-nifi-toolkit.yaml")}"]
+    file("nifi-chart/openid-values.yaml"),
+    file("nifi-chart/secured-values-with-nifi-toolkit.yaml")]
   namespace       = kubernetes_namespace.nifi.metadata[0].name
   cleanup_on_fail = true
   set {
@@ -63,7 +63,6 @@ resource "helm_release" "nifi" {
   set {
     name  = "nifi.authentication.openid.clientSecret"
     value = azuread_application_password.dagx-terraform-nifi-app-secret.value
-    # value = "73P7-cmFG1X~c8DHAK527o85C_kaSN-qkMD"
   }
   set {
     name  = "nifi.authentication.openid.discoveryUrl"
