@@ -143,10 +143,10 @@ nifi:
       expirationPeriod: "12 hours"
     openid:
       enabled: false
-      discoveryUrl: "https://login.microsoftonline.com/1d9b26d0-b6ea-4495-97d3-e85ccf73a154/v2.0/.well-known/openid-configuration"
-      clientId: "49dddcd9-a534-49d4-83b9-059d584883cf"
-      clientSecret: "73P7-cmFG1X~c8DHAK527o85C_aSN-qkMD"
-      additionalScopes: "profile"
+      discoveryUrl: "https://login.microsoftonline.com/TENANTID/v2.0/.well-known/openid-configuration"
+      clientId: ""
+      clientSecret: ""
+      additionalScopes: "profile, api://029455d7-fe07-43b4-a621-d7d9276e875a/.default"
       preferredJwsAlgorithm: ""
       claimIdentityingUser: ""
   authorization:

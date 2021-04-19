@@ -50,9 +50,6 @@ resource "azurerm_kubernetes_cluster" "default" {
     azure_policy {
       enabled = false
     }
-    kube_dashboard {
-      enabled = true
-    }
   }
 
   tags = {
