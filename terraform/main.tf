@@ -26,6 +26,7 @@ provider "azurerm" {
   features {
     key_vault {
       purge_soft_delete_on_destroy = true
+      recover_soft_deleted_key_vaults = true
     }
   }
 }
@@ -41,7 +42,7 @@ resource "azurerm_resource_group" "rg" {
 
 # App registration for the primary identity
 resource "azuread_application" "dagx-terraform-app" {
-  display_name               = "dagx-${var.resourcesuffix}-app"
+  display_name               = "PrimaryIdentity-${var.resourcesuffix}"
   available_to_other_tenants = false
 }
 
@@ -73,6 +74,7 @@ resource "azurerm_key_vault" "dagx-terraform-vault" {
 
   sku_name                  = "standard"
   enable_rbac_authorization = true
+  
 }
 
 # Role assignment so that the primary identity may access the vault
@@ -131,6 +133,9 @@ resource "azurerm_kubernetes_cluster" "dagx" {
     azure_policy {
       enabled = false
     }
+    kube_dashboard {
+      enabled = true
+    }
   }
 
   tags = {
@@ -152,7 +157,6 @@ resource "random_password" "password" {
 
 resource "azuread_application_password" "dagx-terraform-nifi-app-secret" {
   application_object_id = azuread_application.dagx-terraform-nifi-app.id
-  description           = "Password for Nifi app registration"
   end_date              = "2099-01-01T01:02:03Z"
   value                 = random_password.password.result
 }
