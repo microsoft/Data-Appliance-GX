@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atlas
+  labels:
+    release: atlas-release
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: atlas
+      release: atlas-release
+  template:
+    metadata:
+      labels:
+        app: atlas
+        release: atlas-release
+    spec:
+      initContainers:
+        - name: atlas-init
+          image: "manjitsing664/atlasimage:latest"
+          imagePullPolicy: IfNotPresent
+          command: [
+              "/bin/bash",
+              "-c",
+              "apk update;
+                     apk add curl zip;
+                     zip config.zip /apache-atlas-2.1.0-SNAPSHOT/conf/solr/*;
+                     curl -X POST --header 'Content-Type:text/xml' -d @config.zip 'http://atlas-release-solr-headless:8983/solr/admin/configs?action=CREATE&name=vertex_index';
+                     curl -X POST --header 'Content-Type:text/xml' -d @config.zip 'http://atlas-release-solr-headless:8983/solr/admin/configs?action=CREATE&name=edge_index';
+                     curl -X POST --header 'Content-Type:text/xml' -d @config.zip 'http://atlas-release-solr-headless:8983/solr/admin/configs?action=CREATE&name=fulltext_index';"
+          ]
+          env:
+            - name: ZK_CLIENT_TIMEOUT
+              value: ""
+      containers:
+        - name: atlas
+          command: [
+              "/bin/bash",
+              "-c",
+              "/apache-atlas-2.1.0-SNAPSHOT/bin/atlas_start.py;
+                      tail -f /apache-atlas-2.1.0-SNAPSHOT/logs/*.log;"
+          ]
+          image: "manjitsing664/atlasimage:latest"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 21000
+          volumeMounts:
+            - name: atlas-config
+              mountPath: /apache-atlas-2.1.0-SNAPSHOT/conf/atlas-application.properties
+              subPath: atlas-application.properties
+      volumes:
+        - name: atlas-config
+          configMap:
+            name: atlas-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: atlas
+  labels:
+    app: atlas
+    chart: atlas-0.1.0
+spec:
+  type: ClusterIP
+  ports:
+    - port: 21000
+      targetPort: 21000
+      protocol: TCP
+  selector:
+    app: atlas
