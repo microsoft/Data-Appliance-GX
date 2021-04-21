@@ -76,13 +76,13 @@ resource "azurerm_kubernetes_cluster" "default" {
   dns_prefix          = var.cluster_rg
 
   default_node_pool {
-    name               = "agentpool"
-    node_count         = 2
-    vm_size            = "Standard_D2_v2"
-    os_disk_size_gb    = 30
-    max_pods           = 110
-    type               = "VirtualMachineScaleSets"
-    os_disk_type       = "Managed"
+    name            = "agentpool"
+    node_count      = 2
+    vm_size         = "Standard_D2_v2"
+    os_disk_size_gb = 30
+    max_pods        = 110
+    type            = "VirtualMachineScaleSets"
+    os_disk_type    = "Managed"
   }
 
   identity {
@@ -101,6 +101,120 @@ resource "kubernetes_namespace" "ingress-basic" {
   }
 }
 
+resource "helm_release" "default" {
+  chart      = "ingress-nginx"
+  name       = "nginx-ingress"
+  namespace  = kubernetes_namespace.ingress-basic.metadata[0].name
+  repository = "https://kubernetes.github.io/ingress-nginx"
+
+  set {
+    name  = "controller.replicaCount"
+    value = "2"
+  }
+  //  set {
+  //    name  = "controller.nodeSelector.beta.kubernetes.io/os"
+  //    value = "linux"
+  //  }
+  //  set {
+  //    name  = "defaultBackend.nodeSelector.beta.kubernetes.io/os"
+  //    value = "linux"
+  //  }
+  //  set {
+  //    name  = "controller.admissionWebhooks.patch.nodeSelector.beta.kubernetes.io/os"
+  //    value = "linux"
+  //  }
+  set {
+    name  = "controller.service.loadBalancerIP"
+    value = azurerm_public_ip.aks-cluster-public-ip.ip_address
+  }
+  set {
+    name  = "controller.service.annotations.service.beta.kubernetes.io/azure-dns-label-name"
+    value = azurerm_public_ip.aks-cluster-public-ip.domain_name_label
+  }
+}
+
+resource "kubernetes_ingress" "atlas-ingress" {
+  metadata {
+    name      = "atlas-ingress"
+    namespace = kubernetes_namespace.ingress-basic.metadata[0].name
+    annotations = {
+      "nginx.ingress.kubernetes.io/ssl-redirect" : "false"
+      "nginx.ingress.kubernetes.io/use-regex" : "true"
+      "nginx.ingress.kubernetes.io/rewrite-target" : "/$1"
+    }
+  }
+  spec {
+    rule {
+      http {
+        path {
+          backend {
+            service_name = "aks-helloworld"
+            service_port = 80
+          }
+          path = "/hello(.*)"
+        }
+        path {
+          backend {
+            service_name = "atlas"
+            service_port = "2100"
+          }
+          path = "/atlas(/|$)(.*)"
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_deployment" "deployment" {
+  metadata {
+    name      = "aks-helloworld"
+    namespace = kubernetes_namespace.ingress-basic.metadata[0].name
+  }
+  spec {
+    replicas = 1
+    selector {
+      match_labels = {
+        app = "aks-helloworld"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = "aks-helloworld"
+        }
+      }
+      spec {
+        container {
+          name  = "aks-helloworld"
+          image = "mcr.microsoft.com/azuredocs/aks-helloworld:v1"
+          port {
+            container_port = 80
+          }
+          env {
+            name  = "TITLE"
+            value = "I .... AM .... ATLAS!!!"
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service" "hello" {
+  metadata {
+    name      = "aks-helloworld"
+    namespace = kubernetes_namespace.ingress-basic.metadata[0].name
+  }
+  spec {
+    port {
+      port = 80
+    }
+    selector = {
+      app = "aks-helloworld"
+    }
+    type = "ClusterIP"
+  }
+}
 
 output "aks-domain-name-label" {
   value = azurerm_public_ip.aks-cluster-public-ip.domain_name_label
