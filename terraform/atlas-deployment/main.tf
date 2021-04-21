@@ -28,11 +28,11 @@ resource "helm_release" "atlas" {
   cleanup_on_fail = true
   set {
     name = "ingress.enabled"
-    value = true
+    value = false
   }
   set {
     name = "ingress.hosts"
-    value = "dagx-atlas-${var.resourcesuffix}.${var.location}.cloudapp.azure.com"
+    value = ""//"dagx-atlas-${var.resourcesuffix}.${var.location}.cloudapp.azure.com"
   }
 }
 

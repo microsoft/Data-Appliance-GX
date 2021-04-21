@@ -55,6 +55,11 @@ variable "cluster_rg" {
   default = "aks-test-cluster"
 }
 
+variable "atlas_service_name" {
+  type    = string
+  default = "foobar"
+}
+
 resource "azurerm_resource_group" "resources" {
   location = var.location
   name     = var.resources_rg
@@ -101,9 +106,9 @@ resource "kubernetes_namespace" "ingress-basic" {
   }
 }
 
-resource "helm_release" "default" {
+resource "helm_release" "ingress-controller" {
   chart      = "ingress-nginx"
-  name       = "nginx-ingress"
+  name       = "nginx-ingress-controller"
   namespace  = kubernetes_namespace.ingress-basic.metadata[0].name
   repository = "https://kubernetes.github.io/ingress-nginx"
 
@@ -133,14 +138,34 @@ resource "helm_release" "default" {
   }
 }
 
-resource "kubernetes_ingress" "atlas-ingress" {
+resource "helm_release" "atlas" {
+  name            = var.atlas_service_name
+  chart           = "../atlas-chart"
+  values          = []
+  namespace       = kubernetes_namespace.ingress-basic.metadata[0].name
+  cleanup_on_fail = true
+  set {
+    name  = "service.type"
+    value = "ClusterIP"
+  }
+  //  set {
+  //    name  = "ingress.enabled"
+  //    value = "false"
+  //  }
+  //  set {
+  //    name  = "ingress.hosts[0]"
+  //    value = azurerm_public_ip.aks-cluster-public-ip.fqdn
+  //  }
+}
+
+resource "kubernetes_ingress" "ingress-route" {
   metadata {
     name      = "atlas-ingress"
     namespace = kubernetes_namespace.ingress-basic.metadata[0].name
     annotations = {
       "nginx.ingress.kubernetes.io/ssl-redirect" : "false"
       "nginx.ingress.kubernetes.io/use-regex" : "true"
-      "nginx.ingress.kubernetes.io/rewrite-target" : "/$1"
+//      "nginx.ingress.kubernetes.io/rewrite-target" : "/$2"
     }
   }
   spec {
@@ -151,20 +176,21 @@ resource "kubernetes_ingress" "atlas-ingress" {
             service_name = "aks-helloworld"
             service_port = 80
           }
-          path = "/hello(.*)"
+          path = "/hello"
         }
         path {
           backend {
-            service_name = "atlas"
-            service_port = "2100"
+            service_name = "${var.atlas_service_name}-atlas"
+            service_port = 21000
           }
-          path = "/atlas(/|$)(.*)"
+          path = "/"
         }
       }
     }
   }
 }
 
+# service and deployment for the hello-world
 resource "kubernetes_deployment" "deployment" {
   metadata {
     name      = "aks-helloworld"
@@ -199,7 +225,6 @@ resource "kubernetes_deployment" "deployment" {
     }
   }
 }
-
 resource "kubernetes_service" "hello" {
   metadata {
     name      = "aks-helloworld"
