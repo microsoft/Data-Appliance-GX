@@ -12,6 +12,9 @@ terraform {
       source  = "hashicorp/helm"
       version = ">= 2.1.0"
     }
+    tls = {
+
+    }
   }
 }
 
@@ -36,6 +39,10 @@ provider "helm" {
   }
 }
 
+provider "tls" {
+
+}
+### VARIABLES
 variable "location" {
   type    = string
   default = "westeurope"
@@ -58,6 +65,31 @@ variable "cluster_rg" {
 variable "atlas_service_name" {
   type    = string
   default = "foobar"
+}
+
+variable "atlas_ingress_cert_name" {
+  default = "atlas-ingress-tls"
+}
+
+### RESOURCES
+resource "tls_private_key" "atlas-ingress" {
+  algorithm = "RSA"
+}
+resource "tls_self_signed_cert" "atlas-ingress" {
+  allowed_uses = [
+    "server_auth",
+    "digital_signature"
+  ]
+  key_algorithm         = tls_private_key.atlas-ingress.algorithm
+  private_key_pem       = tls_private_key.atlas-ingress.private_key_pem
+  validity_period_hours = 72
+  early_renewal_hours   = 12
+  subject {
+    common_name  = azurerm_public_ip.aks-cluster-public-ip.fqdn
+    organization = "Gaia-X Data Appliance"
+  }
+  dns_names = [
+  azurerm_public_ip.aks-cluster-public-ip.fqdn]
 }
 
 resource "azurerm_resource_group" "resources" {
@@ -158,6 +190,17 @@ resource "helm_release" "atlas" {
   //  }
 }
 
+resource "kubernetes_secret" "atlas-ingress-tls" {
+  metadata {
+    namespace = kubernetes_namespace.ingress-basic.metadata[0].name
+    name      = var.atlas_ingress_cert_name
+  }
+  data = {
+    "tls.crt" = tls_private_key.atlas-ingress.public_key_pem
+    "tls.key" = tls_private_key.atlas-ingress.private_key_pem
+  }
+}
+
 resource "kubernetes_ingress" "ingress-route" {
   metadata {
     name      = "atlas-ingress"
@@ -165,7 +208,7 @@ resource "kubernetes_ingress" "ingress-route" {
     annotations = {
       "nginx.ingress.kubernetes.io/ssl-redirect" : "false"
       "nginx.ingress.kubernetes.io/use-regex" : "true"
-//      "nginx.ingress.kubernetes.io/rewrite-target" : "/$2"
+      //      "nginx.ingress.kubernetes.io/rewrite-target" : "/$2"
     }
   }
   spec {
@@ -186,6 +229,10 @@ resource "kubernetes_ingress" "ingress-route" {
           path = "/"
         }
       }
+    }
+    tls {
+      hosts       = [azurerm_public_ip.aks-cluster-public-ip.fqdn]
+      secret_name =  kubernetes_secret.atlas-ingress-tls.metadata[0].name
     }
   }
 }
@@ -249,5 +296,8 @@ output "aks-fqdn" {
 }
 output "aks-public-ip" {
   value = azurerm_public_ip.aks-cluster-public-ip.ip_address
+}
+output "secret-name" {
+  value = tls_private_key.atlas-ingress.public_key_pem
 }
 
