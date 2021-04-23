@@ -39,3 +39,6 @@ variable "nifi_service_name"{
   type= string
   default = "nifi"
 }
+variable "nifi_ingress_cert_name" {
+  default = "nifi-ingress-tls"
+}

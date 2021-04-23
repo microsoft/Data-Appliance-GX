@@ -11,10 +11,6 @@ variable "location" {
   type = string
 }
 
-variable "enable_http_routing"{
-  type = bool
-  default = false
-}
 variable "dns" {
   type=string
 }

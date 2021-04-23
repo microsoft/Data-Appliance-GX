@@ -17,6 +17,86 @@ resource "kubernetes_namespace" "nifi" {
   }
 }
 
+# add aut-generated TLS certificate for the ingress
+resource "tls_private_key" "nifi-ingress" {
+  algorithm = "ECDSA"
+}
+resource "tls_self_signed_cert" "nifi-ingress" {
+  allowed_uses = [
+    "server_auth",
+    "digital_signature"
+  ]
+  key_algorithm         = tls_private_key.nifi-ingress.algorithm
+  private_key_pem       = tls_private_key.nifi-ingress.private_key_pem
+  validity_period_hours = 72
+  early_renewal_hours   = 12
+  subject {
+    common_name  = var.public-ip.fqdn
+    organization = "Gaia-X Data Appliance"
+  }
+  dns_names = [
+    var.public-ip.fqdn]
+}
+resource "kubernetes_secret" "atlas-ingress-tls" {
+  metadata {
+    namespace = kubernetes_namespace.nifi.metadata[0].name
+    name      = var.nifi_ingress_cert_name
+  }
+  data = {
+    "tls.crt" = tls_private_key.nifi-ingress.public_key_pem
+    "tls.key" = tls_private_key.nifi-ingress.private_key_pem
+  }
+}
+
+# the ingress + ingress route for the nifi cluster
+resource "helm_release" "ingress-controller" {
+  chart      = "ingress-nginx"
+  name       = "nginx-ingress-controller"
+  namespace  = kubernetes_namespace.nifi.metadata[0].name
+  repository = "https://kubernetes.github.io/ingress-nginx"
+
+  set {
+    name  = "controller.replicaCount"
+    value = "2"
+  }
+  set {
+    name  = "controller.service.loadBalancerIP"
+    value = var.public-ip.ip_address
+  }
+  set {
+    name  = "controller.service.annotations.service.beta.kubernetes.io/azure-dns-label-name"
+    value = var.public-ip.domain_name_label
+  }
+}
+resource "kubernetes_ingress" "ingress-route" {
+  metadata {
+    name      = "nifi-ingress"
+    namespace = kubernetes_namespace.nifi.metadata[0].name
+    annotations = {
+      "nginx.ingress.kubernetes.io/ssl-redirect" : "false"
+      "nginx.ingress.kubernetes.io/use-regex" : "true"
+      //      "nginx.ingress.kubernetes.io/rewrite-target" : "/$2"
+    }
+  }
+  spec {
+    rule {
+      http {
+        path {
+          backend {
+            service_name = var.nifi_service_name
+            service_port = 21000
+          }
+          path = "/"
+        }
+      }
+    }
+    tls {
+      hosts       = [var.public-ip.fqdn]
+      secret_name = kubernetes_secret.atlas-ingress-tls.metadata[0].name
+    }
+  }
+}
+
 # App registration for the loadbalancer
 resource "azuread_application" "dagx-terraform-nifi-app" {
   display_name = "Dagx-${var.resourcesuffix}-Nifi"

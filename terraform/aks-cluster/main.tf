@@ -54,9 +54,6 @@ resource "azurerm_kubernetes_cluster" "default" {
   }
 
   addon_profile {
-    http_application_routing {
-      enabled = var.enable_http_routing
-    }
     azure_policy {
       enabled = false
     }

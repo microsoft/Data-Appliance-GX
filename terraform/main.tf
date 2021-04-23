@@ -94,7 +94,7 @@ data "azurerm_kubernetes_cluster" "atlas" {
 data "azurerm_client_config" "current" {}
 
 resource "azurerm_resource_group" "rg" {
-  name     = "dagx-${var.resourcesuffix}-resources"
+  name     = "${var.resourcesuffix}-resources"
   location = var.location
 }
 
@@ -164,7 +164,6 @@ module "nifi-cluster" {
   cluster_name = local.cluster_name_nifi
   location     = var.location
   dns          = "dagx-nifi"
-  enable_http_routing = true
 }
 
 module "nifi-deployment" {
