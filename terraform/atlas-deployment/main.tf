@@ -47,7 +47,7 @@ resource "kubernetes_namespace" "atlas" {
 
 resource "helm_release" "ingress-controller" {
   chart      = "ingress-nginx"
-  name       = "nginx-ingress-controller"
+  name       = "atlas-ingress-controller"
   namespace  = kubernetes_namespace.atlas.metadata[0].name
   repository = "https://kubernetes.github.io/ingress-nginx"
 

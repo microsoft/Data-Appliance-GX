@@ -178,13 +178,13 @@ module "nifi-deployment" {
     kubernetes = kubernetes.nifi
     helm       = helm.nifi
   }
-  public-ip= module.atlas-cluster.public-ip
+  public-ip = module.nifi-cluster.public-ip
 }
 
 module "atlas-cluster" {
-  source              = "./aks-cluster"
-  cluster_name        = local.cluster_name_atlas
-  location            = var.location
+  source       = "./aks-cluster"
+  cluster_name = local.cluster_name_atlas
+  location     = var.location
   dns          = "dagx-atlas"
 }
 module "atlas-deployment" {

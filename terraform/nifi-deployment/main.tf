@@ -18,40 +18,40 @@ resource "kubernetes_namespace" "nifi" {
 }
 
 # add aut-generated TLS certificate for the ingress
-resource "tls_private_key" "nifi-ingress" {
-  algorithm = "ECDSA"
-}
-resource "tls_self_signed_cert" "nifi-ingress" {
-  allowed_uses = [
-    "server_auth",
-    "digital_signature"
-  ]
-  key_algorithm         = tls_private_key.nifi-ingress.algorithm
-  private_key_pem       = tls_private_key.nifi-ingress.private_key_pem
-  validity_period_hours = 72
-  early_renewal_hours   = 12
-  subject {
-    common_name  = var.public-ip.fqdn
-    organization = "Gaia-X Data Appliance"
-  }
-  dns_names = [
-    var.public-ip.fqdn]
-}
-resource "kubernetes_secret" "atlas-ingress-tls" {
-  metadata {
-    namespace = kubernetes_namespace.nifi.metadata[0].name
-    name      = var.nifi_ingress_cert_name
-  }
-  data = {
-    "tls.crt" = tls_private_key.nifi-ingress.public_key_pem
-    "tls.key" = tls_private_key.nifi-ingress.private_key_pem
-  }
-}
+//resource "tls_private_key" "nifi-ingress" {
+//  algorithm = "ECDSA"
+//}
+//resource "tls_self_signed_cert" "nifi-ingress" {
+//  allowed_uses = [
+//    "server_auth",
+//    "digital_signature"
+//  ]
+//  key_algorithm         = tls_private_key.nifi-ingress.algorithm
+//  private_key_pem       = tls_private_key.nifi-ingress.private_key_pem
+//  validity_period_hours = 72
+//  early_renewal_hours   = 12
+//  subject {
+//    common_name  = var.public-ip.fqdn
+//    organization = "Gaia-X Data Appliance"
+//  }
+//  dns_names = [
+//    var.public-ip.fqdn]
+//}
+//resource "kubernetes_secret" "atlas-ingress-tls" {
+//  metadata {
+//    namespace = kubernetes_namespace.nifi.metadata[0].name
+//    name      = var.nifi_ingress_cert_name
+//  }
+//  data = {
+//    "tls.crt" = tls_private_key.nifi-ingress.public_key_pem
+//    "tls.key" = tls_private_key.nifi-ingress.private_key_pem
+//  }
+//}
 
 # the ingress + ingress route for the nifi cluster
 resource "helm_release" "ingress-controller" {
   chart      = "ingress-nginx"
-  name       = "nginx-ingress-controller"
+  name       = "nifi-ingress-controller"
   namespace  = kubernetes_namespace.nifi.metadata[0].name
   repository = "https://kubernetes.github.io/ingress-nginx"
 
@@ -84,16 +84,16 @@ resource "kubernetes_ingress" "ingress-route" {
         path {
           backend {
             service_name = var.nifi_service_name
-            service_port = 21000
+            service_port = 80
           }
           path = "/"
         }
       }
     }
-    tls {
-      hosts       = [var.public-ip.fqdn]
-      secret_name = kubernetes_secret.atlas-ingress-tls.metadata[0].name
-    }
+//    tls {
+//      hosts       = [var.public-ip.fqdn]
+//      secret_name = kubernetes_secret.atlas-ingress-tls.metadata[0].name
+//    }
   }
 }
 
@@ -135,7 +135,6 @@ resource "helm_release" "nifi" {
   set {
     name = "nifi.authentication.openid.clientId"
     value = azuread_application.dagx-terraform-nifi-app.application_id
-    type = "string"
   }
   set {
     name = "nifi.authentication.openid.clientSecret"
@@ -157,14 +156,14 @@ resource "helm_release" "nifi" {
     name = "resources.requests.memory"
     value = "1Gi"
   }
-  set {
-    name = "ingress.enabled"
-    value = true
-  }
-  set {
-    name = "nifi.properties.webProxyHost"
-    value = "dagx-${var.resourcesuffix}.${var.location}.cloudapp.azure.com"
-  }
+//  set {
+//    name = "ingress.enabled"
+//    value = false
+//  }
+//  set {
+//    name = "nifi.properties.webProxyHost"
+//    value = "dagx-${var.resourcesuffix}.${var.location}.cloudapp.azure.com"
+//  }
   set {
     name = "initUsers.enabled"
     value = true
@@ -176,14 +175,6 @@ resource "helm_release" "nifi" {
   set {
     name = "uiUsers"
     value = "paul.latzelsperger@beardyinc.com"
-  }
-  set {
-    name = "zookeeper.replicaCount"
-    value = "1"
-  }
-  set{
-    name = "nifi.replicaCount"
-    value = "2"
   }
 }
 
