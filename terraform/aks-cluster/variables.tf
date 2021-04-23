@@ -15,3 +15,6 @@ variable "enable_http_routing"{
   type = bool
   default = true
 }
+variable "dns" {
+  type=string
+}

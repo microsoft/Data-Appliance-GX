@@ -17,6 +17,16 @@ resource "azurerm_resource_group" "clusterrg" {
   location = var.location
 }
 
+
+resource "azurerm_public_ip" "aks-cluster-public-ip" {
+  resource_group_name = azurerm_kubernetes_cluster.default.node_resource_group
+  location            = azurerm_resource_group.clusterrg.location
+  domain_name_label   = var.dns
+  allocation_method   = "Static"
+  name                = "dagxPublicIp"
+  sku                 = "Standard"
+}
+
 resource "azurerm_kubernetes_cluster" "default" {
   name                = var.cluster_name
   location            = var.location
@@ -57,3 +67,6 @@ resource "azurerm_kubernetes_cluster" "default" {
   }
 }
 
+output "public-ip"{
+  value= azurerm_public_ip.aks-cluster-public-ip
+}

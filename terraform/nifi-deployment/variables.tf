@@ -28,3 +28,14 @@ variable "location"{
 variable "tenant_id" {
     type= string
 }
+variable "public-ip" {
+  type = object({
+    ip_address = string
+    fqdn = string
+    domain_name_label = string })
+}
+
+variable "nifi_service_name"{
+  type= string
+  default = "nifi"
+}

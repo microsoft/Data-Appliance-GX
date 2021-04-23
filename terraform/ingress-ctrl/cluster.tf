@@ -73,8 +73,9 @@ variable "atlas_ingress_cert_name" {
 
 ### RESOURCES
 resource "tls_private_key" "atlas-ingress" {
-  algorithm = "RSA"
+  algorithm = "ECDSA"
 }
+
 resource "tls_self_signed_cert" "atlas-ingress" {
   allowed_uses = [
     "server_auth",
@@ -172,7 +173,7 @@ resource "helm_release" "ingress-controller" {
 
 resource "helm_release" "atlas" {
   name            = var.atlas_service_name
-  chart           = "../atlas-chart"
+  chart           = "./atlas-chart"
   values          = []
   namespace       = kubernetes_namespace.ingress-basic.metadata[0].name
   cleanup_on_fail = true
@@ -216,13 +217,6 @@ resource "kubernetes_ingress" "ingress-route" {
       http {
         path {
           backend {
-            service_name = "aks-helloworld"
-            service_port = 80
-          }
-          path = "/hello"
-        }
-        path {
-          backend {
             service_name = "${var.atlas_service_name}-atlas"
             service_port = 21000
           }
@@ -237,57 +231,6 @@ resource "kubernetes_ingress" "ingress-route" {
   }
 }
 
-# service and deployment for the hello-world
-resource "kubernetes_deployment" "deployment" {
-  metadata {
-    name      = "aks-helloworld"
-    namespace = kubernetes_namespace.ingress-basic.metadata[0].name
-  }
-  spec {
-    replicas = 1
-    selector {
-      match_labels = {
-        app = "aks-helloworld"
-      }
-    }
-    template {
-      metadata {
-        labels = {
-          app = "aks-helloworld"
-        }
-      }
-      spec {
-        container {
-          name  = "aks-helloworld"
-          image = "mcr.microsoft.com/azuredocs/aks-helloworld:v1"
-          port {
-            container_port = 80
-          }
-          env {
-            name  = "TITLE"
-            value = "I .... AM .... ATLAS!!!"
-          }
-        }
-      }
-    }
-  }
-}
-resource "kubernetes_service" "hello" {
-  metadata {
-    name      = "aks-helloworld"
-    namespace = kubernetes_namespace.ingress-basic.metadata[0].name
-  }
-  spec {
-    port {
-      port = 80
-    }
-    selector = {
-      app = "aks-helloworld"
-    }
-    type = "ClusterIP"
-  }
-}
-
 output "aks-domain-name-label" {
   value = azurerm_public_ip.aks-cluster-public-ip.domain_name_label
 }
@@ -296,8 +239,5 @@ output "aks-fqdn" {
 }
 output "aks-public-ip" {
   value = azurerm_public_ip.aks-cluster-public-ip.ip_address
-}
-output "secret-name" {
-  value = tls_private_key.atlas-ingress.public_key_pem
 }
 

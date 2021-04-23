@@ -13,10 +13,7 @@ terraform {
 
 resource "kubernetes_namespace" "nifi" {
   metadata {
-    name = var.kubernetes-namespace
-    labels = {
-      "environment" = "test"
-    }
+    name = "${var.resourcesuffix}-nifi"
   }
 }
 
@@ -25,7 +22,7 @@ resource "azuread_application" "dagx-terraform-nifi-app" {
   display_name = "Dagx-${var.resourcesuffix}-Nifi"
   available_to_other_tenants = false
   reply_urls = [
-    "https://dagx-${var.resourcesuffix}.${var.location}.cloudapp.azure.com/nifi-api/access/oidc/callback"]
+    "https://${var.public-ip.fqdn}/nifi-api/access/oidc/callback"]
 }
 
 resource "random_password" "password" {
@@ -48,7 +45,7 @@ resource "azuread_service_principal" "dagx-terraform-nifi-app-sp" {
 }
 
 resource "helm_release" "nifi" {
-  name = "dagx-nifi-release"
+  name = var.nifi_service_name
   chart = var.chart-dir
   values = [
     file("nifi-chart/openid-values.yaml"),
@@ -99,6 +96,14 @@ resource "helm_release" "nifi" {
   set {
     name = "uiUsers"
     value = "paul.latzelsperger@beardyinc.com"
+  }
+  set {
+    name = "zookeeper.replicaCount"
+    value = "1"
+  }
+  set{
+    name = "nifi.replicaCount"
+    value = "2"
   }
 }
 
