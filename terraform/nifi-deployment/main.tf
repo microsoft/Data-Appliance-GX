@@ -17,37 +17,6 @@ resource "kubernetes_namespace" "nifi" {
   }
 }
 
-# add aut-generated TLS certificate for the ingress
-//resource "tls_private_key" "nifi-ingress" {
-//  algorithm = "ECDSA"
-//}
-//resource "tls_self_signed_cert" "nifi-ingress" {
-//  allowed_uses = [
-//    "server_auth",
-//    "digital_signature"
-//  ]
-//  key_algorithm         = tls_private_key.nifi-ingress.algorithm
-//  private_key_pem       = tls_private_key.nifi-ingress.private_key_pem
-//  validity_period_hours = 72
-//  early_renewal_hours   = 12
-//  subject {
-//    common_name  = var.public-ip.fqdn
-//    organization = "Gaia-X Data Appliance"
-//  }
-//  dns_names = [
-//    var.public-ip.fqdn]
-//}
-//resource "kubernetes_secret" "atlas-ingress-tls" {
-//  metadata {
-//    namespace = kubernetes_namespace.nifi.metadata[0].name
-//    name      = var.nifi_ingress_cert_name
-//  }
-//  data = {
-//    "tls.crt" = tls_private_key.nifi-ingress.public_key_pem
-//    "tls.key" = tls_private_key.nifi-ingress.private_key_pem
-//  }
-//}
-
 # the ingress + ingress route for the nifi cluster
 resource "helm_release" "ingress-controller" {
   chart      = "ingress-nginx"
@@ -73,20 +42,32 @@ resource "kubernetes_ingress" "ingress-route" {
     name      = "nifi-ingress"
     namespace = kubernetes_namespace.nifi.metadata[0].name
     annotations = {
-      "nginx.ingress.kubernetes.io/ssl-redirect" : "false"
-      "nginx.ingress.kubernetes.io/use-regex" : "true"
-      //      "nginx.ingress.kubernetes.io/rewrite-target" : "/$2"
+      "kubernetes.io/ingress.class": "nginx"
+      "meta.helm.sh/release-name": "nifi-test"
+      "meta.helm.sh/release-namespace": kubernetes_namespace.nifi.metadata[0].name
+      "nginx.ingress.kubernetes.io/affinity": "cookie"
+      "nginx.ingress.kubernetes.io/affinity-mode": "affinityMode"
+      "nginx.ingress.kubernetes.io/backend-protocol": "HTTPS"
+      "nginx.ingress.kubernetes.io/proxy-ssl-server-name": "on"
     }
   }
   spec {
     rule {
+      host = var.public-ip.fqdn
       http {
         path {
           backend {
             service_name = var.nifi_service_name
-            service_port = 80
+            service_port = 443
           }
           path = "/"
+        }
+        path {
+          backend {
+            service_name = var.nifi_service_name
+            service_port = 8888
+          }
+          path = "/contentListener"
         }
       }
     }
@@ -160,10 +141,10 @@ resource "helm_release" "nifi" {
 //    name = "ingress.enabled"
 //    value = false
 //  }
-//  set {
-//    name = "nifi.properties.webProxyHost"
-//    value = "dagx-${var.resourcesuffix}.${var.location}.cloudapp.azure.com"
-//  }
+  set {
+    name = "nifi.properties.webProxyHost"
+    value = var.public-ip.fqdn
+  }
   set {
     name = "initUsers.enabled"
     value = true

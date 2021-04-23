@@ -15,7 +15,7 @@ securityContext:
   fsGroup: 1000
 
 # statefulset replica-count
-replicaCount: 3
+replicaCount: 2
 
 # Azure managed identity details
 managedIdentity:
