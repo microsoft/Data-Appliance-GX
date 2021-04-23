@@ -39,7 +39,7 @@ resource "tls_self_signed_cert" "atlas-ingress" {
   var.public-ip.fqdn]
 }
 
-resource "kubernetes_namespace" "ingress-basic" {
+resource "kubernetes_namespace" "atlas" {
   metadata {
     name = "${var.resourcesuffix}-atlas"
   }
@@ -48,7 +48,7 @@ resource "kubernetes_namespace" "ingress-basic" {
 resource "helm_release" "ingress-controller" {
   chart      = "ingress-nginx"
   name       = "nginx-ingress-controller"
-  namespace  = kubernetes_namespace.ingress-basic.metadata[0].name
+  namespace  = kubernetes_namespace.atlas.metadata[0].name
   repository = "https://kubernetes.github.io/ingress-nginx"
 
   set {
@@ -69,7 +69,7 @@ resource "helm_release" "atlas" {
   name            = var.atlas_service_name
   chart           = "./atlas-chart"
   values          = []
-  namespace       = kubernetes_namespace.ingress-basic.metadata[0].name
+  namespace       = kubernetes_namespace.atlas.metadata[0].name
   cleanup_on_fail = true
   set {
     name  = "service.type"
@@ -87,7 +87,7 @@ resource "helm_release" "atlas" {
 
 resource "kubernetes_secret" "atlas-ingress-tls" {
   metadata {
-    namespace = kubernetes_namespace.ingress-basic.metadata[0].name
+    namespace = kubernetes_namespace.atlas.metadata[0].name
     name      = var.atlas_ingress_cert_name
   }
   data = {
@@ -99,7 +99,7 @@ resource "kubernetes_secret" "atlas-ingress-tls" {
 resource "kubernetes_ingress" "ingress-route" {
   metadata {
     name      = "atlas-ingress"
-    namespace = kubernetes_namespace.ingress-basic.metadata[0].name
+    namespace = kubernetes_namespace.atlas.metadata[0].name
     annotations = {
       "nginx.ingress.kubernetes.io/ssl-redirect" : "false"
       "nginx.ingress.kubernetes.io/use-regex" : "true"
@@ -128,4 +128,8 @@ resource "kubernetes_ingress" "ingress-route" {
 resource "local_file" "kubeconfig" {
   content  = var.kubeconfig
   filename = "${path.root}/kubeconfig"
+}
+
+output "atlas-cluster-namespace" {
+  value = kubernetes_namespace.atlas.metadata[0].name
 }

@@ -42,10 +42,10 @@ provider "azuread" {
 
 provider "kubernetes" {
   alias                  = "nifi"
-//  host                   = data.azurerm_kubernetes_cluster.nifi.kube_config.0.host
-//  client_certificate     = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.client_certificate)
-//  client_key             = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.client_key)
-//  cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.cluster_ca_certificate)
+  host                   = data.azurerm_kubernetes_cluster.nifi.kube_config.0.host
+  client_certificate     = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.client_certificate)
+  client_key             = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.client_key)
+  cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.cluster_ca_certificate)
 }
 
 provider "kubernetes" {
@@ -59,10 +59,10 @@ provider "kubernetes" {
 provider "helm" {
   alias = "nifi"
   kubernetes {
-//    host                   = data.azurerm_kubernetes_cluster.nifi.kube_config.0.host
-//    client_certificate     = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.client_certificate)
-//    client_key             = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.client_key)
-//    cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.cluster_ca_certificate)
+    host                   = data.azurerm_kubernetes_cluster.nifi.kube_config.0.host
+    client_certificate     = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.client_certificate)
+    client_key             = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.client_key)
+    cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.nifi.kube_config.0.cluster_ca_certificate)
   }
 }
 
@@ -76,13 +76,13 @@ provider "helm" {
   }
 }
 
-//data "azurerm_kubernetes_cluster" "nifi" {
-//  depends_on = [
-//  module.nifi-cluster]
+data "azurerm_kubernetes_cluster" "nifi" {
+  depends_on = [
+  module.nifi-cluster]
   # refresh cluster state before reading
-//  name                = local.cluster_name_nifi
-//  resource_group_name = local.cluster_name_nifi
-//}
+  name                = local.cluster_name_nifi
+  resource_group_name = local.cluster_name_nifi
+}
 
 data "azurerm_kubernetes_cluster" "atlas" {
   depends_on = [
@@ -159,35 +159,33 @@ resource "azurerm_storage_account" "dagxblobstore" {
 
 
 
-//module "nifi-cluster" {
-//  source       = "./aks-cluster"
-//  cluster_name = local.cluster_name_nifi
-//  location     = var.location
-//  dns          = "dagx-nifi"
-//}
-//
-//
-//
-//module "nifi-deployment" {
-//  depends_on = [
-//  module.nifi-cluster]
-//  source         = "./nifi-deployment"
-//  cluster_name   = local.cluster_name_nifi
-//  kubeconfig     = data.azurerm_kubernetes_cluster.nifi.kube_config_raw
-//  resourcesuffix = var.resourcesuffix
-//  tenant_id      = data.azurerm_client_config.current.tenant_id
-//  providers = {
-//    kubernetes = kubernetes.nifi
-//    helm       = helm.nifi
-//  }
-//  public-ip= module.atlas-cluster.public-ip
-//}
+module "nifi-cluster" {
+  source       = "./aks-cluster"
+  cluster_name = local.cluster_name_nifi
+  location     = var.location
+  dns          = "dagx-nifi"
+  enable_http_routing = true
+}
+
+module "nifi-deployment" {
+  depends_on = [
+  module.nifi-cluster]
+  source         = "./nifi-deployment"
+  cluster_name   = local.cluster_name_nifi
+  kubeconfig     = data.azurerm_kubernetes_cluster.nifi.kube_config_raw
+  resourcesuffix = var.resourcesuffix
+  tenant_id      = data.azurerm_client_config.current.tenant_id
+  providers = {
+    kubernetes = kubernetes.nifi
+    helm       = helm.nifi
+  }
+  public-ip= module.atlas-cluster.public-ip
+}
 
 module "atlas-cluster" {
   source              = "./aks-cluster"
   cluster_name        = local.cluster_name_atlas
   location            = var.location
-  enable_http_routing = false
   dns          = "dagx-atlas"
 }
 module "atlas-deployment" {

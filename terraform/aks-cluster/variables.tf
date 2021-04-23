@@ -13,7 +13,7 @@ variable "location" {
 
 variable "enable_http_routing"{
   type = bool
-  default = true
+  default = false
 }
 variable "dns" {
   type=string
