@@ -19,6 +19,8 @@ class S3DestinationTest {
     @Test
     void verifyDeserialization() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
+        // this is actually necessary, because otherwise the serialize-only "type" field would
+        // raise an UnrecognizedPropertyException
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         DestinationSecretToken token = new DestinationSecretToken("token", 1L);
