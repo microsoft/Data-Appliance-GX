@@ -1,5 +1,6 @@
 package com.microsoft.dagx.transfer.types.aws;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.dagx.spi.types.domain.transfer.DestinationSecretToken;
 import org.junit.jupiter.api.Test;
@@ -18,6 +19,7 @@ class S3DestinationTest {
     @Test
     void verifyDeserialization() throws IOException {
         ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
         DestinationSecretToken token = new DestinationSecretToken("token", 1L);
         S3Destination process = S3Destination.Builder.newInstance().secretToken(token).region("region").bucketName("bucket").build();
