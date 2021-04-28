@@ -5,9 +5,12 @@ import com.microsoft.dagx.spi.monitor.Monitor;
 import com.microsoft.dagx.spi.security.Vault;
 import com.microsoft.dagx.spi.transfer.flow.DataFlowController;
 import com.microsoft.dagx.spi.transfer.flow.DataFlowInitiateResponse;
+import com.microsoft.dagx.spi.transfer.response.ResponseStatus;
 import com.microsoft.dagx.spi.types.TypeManager;
 import com.microsoft.dagx.spi.types.domain.metadata.DataEntry;
+import com.microsoft.dagx.spi.types.domain.metadata.DataEntryPropertyLookup;
 import com.microsoft.dagx.spi.types.domain.metadata.GenericDataEntryPropertyLookup;
+import com.microsoft.dagx.spi.types.domain.transfer.DataDestination;
 import com.microsoft.dagx.spi.types.domain.transfer.DataRequest;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -70,8 +73,23 @@ public class NifiDataFlowController implements DataFlowController {
             return new DataFlowInitiateResponse(FATAL_ERROR, "NiFi vault credentials were not found");
         }
 
-        Request request = createTransferRequest(dataRequest, basicAuthCreds);
+        DataEntry<?> dataEntry = dataRequest.getDataEntry();
+        DataEntryPropertyLookup lookup = dataEntry.getLookup();
+        var sourceprops = lookup.getPropertiesForEntity(dataEntry.getId());
+        // the "keyName" entry should always be there, regardless of the source storage system
+        var sourceKeyName = sourceprops.get("keyName");
 
+        if (sourceKeyName == null) {
+            return new DataFlowInitiateResponse(FATAL_ERROR, "No 'keyName' property was found for the source file (ID=" + dataEntry.getId() + ")!");
+        }
+
+        sourceprops.put("key", vault.resolveSecret(sourceKeyName.toString()));
+
+        if (sourceprops.isEmpty()) {
+            return new DataFlowInitiateResponse(FATAL_ERROR, "No catalog entry was found for the source file (ID=" + dataEntry.getId() + ")!");
+        }
+
+        Request request = createTransferRequest(sourceprops, dataRequest.getDataDestination(), basicAuthCreds);
 
         try (Response response = httpClient.newCall(request).execute()) {
             int code = response.code();
@@ -98,16 +116,13 @@ public class NifiDataFlowController implements DataFlowController {
     }
 
     @NotNull
-    private Request createTransferRequest(DataRequest dataRequest, String basicAuthCredentials) {
-        DataEntry<?> dataEntry = dataRequest.getDataEntry();
-        var lookup = dataEntry.getLookup();
+    private Request createTransferRequest(Map<String, Object> sourceFileProperties, DataDestination destination, String basicAuthCredentials) {
 
-        var sourceprops = lookup.getPropertiesForEntity(dataEntry.getId());
 
         String url = baseUrl + CONTENTLISTENER;
         Map<String, Object> payload = new HashMap<>();
-        payload.put("source", sourceprops);
-        payload.put("destination", dataRequest.getDataDestination());
+        payload.put("source", sourceFileProperties);
+        payload.put("destination", destination);
         return new Request.Builder()
                 .url(url)
                 .post(RequestBody.create(typeManager.writeValueAsString(payload), JSON))

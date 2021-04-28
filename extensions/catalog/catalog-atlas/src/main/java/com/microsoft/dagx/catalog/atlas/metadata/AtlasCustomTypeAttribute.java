@@ -2,7 +2,20 @@ package com.microsoft.dagx.catalog.atlas.metadata;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class TypeAttribute {
+import java.util.ArrayList;
+import java.util.List;
+
+public class AtlasCustomTypeAttribute {
+    /**
+     * Pre-defined list of attributes that are required for a transfer that originates from Azure Blob Store
+     */
+    public static final List<AtlasCustomTypeAttribute> AZURE_BLOB_ATTRS = new ArrayList<>() {{
+        add(new AtlasCustomTypeAttribute("account", "string", true));
+        add(new AtlasCustomTypeAttribute("blobname", "string", true));
+        add(new AtlasCustomTypeAttribute("container", "string", true));
+        add(new AtlasCustomTypeAttribute("type", "string", true));
+        add(new AtlasCustomTypeAttribute("keyName", "string", true));
+    }};
     @JsonProperty
     private String name;
     @JsonProperty
@@ -10,13 +23,13 @@ public class TypeAttribute {
     @JsonProperty
     private boolean required;
 
-    public TypeAttribute(String name, String type, boolean required) {
+    public AtlasCustomTypeAttribute(String name, String type, boolean required) {
         this.name = name;
         this.type = type;
         this.required = required;
     }
 
-    public TypeAttribute(){}
+    public AtlasCustomTypeAttribute(){}
 
     public String getName() {
         return name;

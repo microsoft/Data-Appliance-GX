@@ -1,7 +1,6 @@
 package com.microsoft.dagx.catalog.atlas.metadata;
 
 import com.microsoft.dagx.spi.DagxException;
-import com.sun.jersey.api.client.ClientResponse;
 import org.apache.atlas.AtlasClientV2;
 import org.apache.atlas.AtlasServiceException;
 import org.apache.atlas.model.SearchFilter;
@@ -22,7 +21,6 @@ import java.util.*;
 import static com.microsoft.dagx.spi.util.ConfigurationFunctions.propOrEnv;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.assertj.core.api.InstanceOfAssertFactories.type;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @EnabledIfEnvironmentVariable(named = "CI", matches = "true")
@@ -248,8 +246,8 @@ public class AtlasApiTest {
         var ts = System.currentTimeMillis();
         String typeName = "MyCustomType" + ts;
         AtlasTypesDef customTypes = atlasApi.createCustomTypes(typeName, Collections.singleton("DataSet"), new ArrayList<>() {{
-            add(new TypeAttribute("width", "float", true));
-            add(new TypeAttribute("height", "int", true));
+            add(new AtlasCustomTypeAttribute("width", "float", true));
+            add(new AtlasCustomTypeAttribute("height", "int", true));
         }});
         assertThat(customTypes).isNotNull();
         assertThat(customTypes.getEntityDefs()).hasSize(1);
@@ -264,8 +262,8 @@ public class AtlasApiTest {
     void createCustomType_invalidAttributeType() {
         var ts = System.currentTimeMillis();
         ThrowableAssert.ThrowingCallable action = () -> atlasApi.createCustomTypes("MyCustomType" + ts, Collections.singleton("DataSet"), new ArrayList<>() {{
-            add(new TypeAttribute("width", "float", true));
-            add(new TypeAttribute("height", "foobar", true));
+            add(new AtlasCustomTypeAttribute("width", "float", true));
+            add(new AtlasCustomTypeAttribute("height", "foobar", true));
         }});
 
         assertThatThrownBy(action).isInstanceOf(DagxException.class).hasMessageContaining("Given typename foobar was invalid");
@@ -276,11 +274,11 @@ public class AtlasApiTest {
         var ts = System.currentTimeMillis();
         String typeName = "MyCustomType" + ts;
         atlasApi.createCustomTypes(typeName, Collections.singleton("DataSet"), new ArrayList<>() {{
-            add(new TypeAttribute("name", "float", true));
+            add(new AtlasCustomTypeAttribute("name", "float", true));
         }});
 
         assertThatThrownBy(() -> atlasApi.createCustomTypes(typeName, Collections.singleton("DataSet"), new ArrayList<>() {{
-            add(new TypeAttribute("name", "float", true));
+            add(new AtlasCustomTypeAttribute("name", "float", true));
         }})).isInstanceOf(DagxException.class).hasMessageContaining("already exists");
 
     }
@@ -289,7 +287,7 @@ public class AtlasApiTest {
     void createCustomType_invalidTypeName() {
         String typeName = "My-Custom-Type";
         assertThatThrownBy(() -> atlasApi.createCustomTypes(typeName, Collections.singleton("DataSet"), new ArrayList<>() {{
-            add(new TypeAttribute("name", "float", true));
+            add(new AtlasCustomTypeAttribute("name", "float", true));
         }})).isInstanceOf(DagxException.class).hasMessageContaining("invalid");
     }
 
@@ -298,7 +296,7 @@ public class AtlasApiTest {
         var ts = System.currentTimeMillis();
         String typeName = "MyCustomType" + ts;
         var typeDef = atlasApi.createCustomTypes(typeName, Collections.singleton("DataSet"), new ArrayList<>() {{
-            add(new TypeAttribute("name", "float", true));
+            add(new AtlasCustomTypeAttribute("name", "float", true));
         }});
 
         atlasApi.deleteCustomType(typeName);
@@ -322,7 +320,7 @@ public class AtlasApiTest {
         var ts = System.currentTimeMillis();
         String typeName = "MyCustomType" + ts;
         var typeDef = atlasApi.createCustomTypes(typeName, Collections.singleton("DataSet"), new ArrayList<>() {{
-            add(new TypeAttribute("name", "string", true));
+            add(new AtlasCustomTypeAttribute("name", "string", true));
         }});
 
         var guid = atlasApi.createEntity(typeName, new HashMap<>() {{

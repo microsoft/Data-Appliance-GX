@@ -1,7 +1,7 @@
 package com.microsoft.dagx.catalog.atlas.dataseed;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.microsoft.dagx.catalog.atlas.metadata.TypeAttribute;
+import com.microsoft.dagx.catalog.atlas.metadata.AtlasCustomTypeAttribute;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +14,7 @@ public class AtlasTypeDefDto {
     @JsonProperty
     private Set<String> superTypeNames;
     @JsonProperty
-    private List<TypeAttribute> attributes = new ArrayList<>();
+    private List<AtlasCustomTypeAttribute> attributes = new ArrayList<>();
 
     public String getTypeKeyName() {
         return typeName;
@@ -32,11 +32,11 @@ public class AtlasTypeDefDto {
         this.superTypeNames = superTypeNames;
     }
 
-    public List<TypeAttribute> getAttributes() {
+    public List<AtlasCustomTypeAttribute> getAttributes() {
         return attributes;
     }
 
-    public void setAttributes(List<TypeAttribute> attributes) {
+    public void setAttributes(List<AtlasCustomTypeAttribute> attributes) {
         this.attributes = attributes;
     }
 

@@ -11,7 +11,7 @@ public interface AtlasApi {
     AtlasTypesDef createClassifications(String... classificationName);
     void deleteClassification(String ... classificationName);
 
-    AtlasTypesDef createCustomTypes(String typeName, Set<String> superTypeNames, List<TypeAttribute> attributes);
+    AtlasTypesDef createCustomTypes(String typeName, Set<String> superTypeNames, List<AtlasCustomTypeAttribute> attributes);
     void deleteCustomType(String typeName);
     void deleteType(List<AtlasTypesDef> type);
 

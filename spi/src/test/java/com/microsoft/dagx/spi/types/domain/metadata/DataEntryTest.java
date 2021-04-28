@@ -31,7 +31,7 @@ class DataEntryTest {
     }
 
     @JsonTypeName("dagx:testextensions")
-    public static class TestExtension extends DataEntryPropertyLookup {
+    public static class TestExtension implements DataEntryPropertyLookup {
 
         @Override
         public Map<String, Object> getPropertiesForEntity(String id) {

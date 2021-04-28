@@ -7,6 +7,6 @@ import java.util.Map;
 /**
  * Base extension point for data entries.
  */
-public abstract class DataEntryPropertyLookup implements Polymorphic {
-    public abstract Map<String, Object> getPropertiesForEntity(String id);
+public interface DataEntryPropertyLookup extends Polymorphic {
+    Map<String, Object> getPropertiesForEntity(String id);
 }

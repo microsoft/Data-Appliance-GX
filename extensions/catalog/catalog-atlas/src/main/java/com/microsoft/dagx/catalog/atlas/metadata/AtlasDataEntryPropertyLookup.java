@@ -1,12 +1,11 @@
 package com.microsoft.dagx.catalog.atlas.metadata;
 
 import com.microsoft.dagx.spi.types.domain.metadata.DataEntryPropertyLookup;
-import org.apache.atlas.model.instance.AtlasStruct;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class AtlasDataEntryPropertyLookup extends DataEntryPropertyLookup {
+public class AtlasDataEntryPropertyLookup implements DataEntryPropertyLookup {
 
     private final AtlasApi atlasApi;
 

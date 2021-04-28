@@ -6,6 +6,10 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.microsoft.dagx.catalog.atlas.metadata.AtlasApi;
+import com.microsoft.dagx.catalog.atlas.metadata.AtlasApiImpl;
+import com.microsoft.dagx.catalog.atlas.metadata.AtlasDataEntryPropertyLookup;
+import com.microsoft.dagx.catalog.atlas.metadata.AtlasCustomTypeAttribute;
 import com.microsoft.dagx.spi.DagxException;
 import com.microsoft.dagx.spi.monitor.Monitor;
 import com.microsoft.dagx.spi.security.Vault;
@@ -21,6 +25,8 @@ import com.microsoft.dagx.spi.types.domain.transfer.DestinationSecretToken;
 import com.microsoft.dagx.transfer.nifi.api.NifiApiClient;
 import com.microsoft.dagx.transfer.types.azure.AzureStorageDestination;
 import okhttp3.OkHttpClient;
+import org.apache.atlas.AtlasClientV2;
+import org.easymock.MockType;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,15 +37,11 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import java.io.File;
 import java.net.URL;
 import java.nio.file.Paths;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 import static com.microsoft.dagx.spi.util.ConfigurationFunctions.propOrEnv;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.reset;
+import static org.easymock.EasyMock.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -128,24 +130,78 @@ class NifiDataFlowControllerTest {
                 .build();
         typeManager.registerTypes(DataRequest.class);
 
-        vault = createMock(Vault.class);
+        vault = mock(MockType.STRICT, Vault.class);
         var nifiAuth = propOrEnv("NIFI_API_AUTH", null);
         if (nifiAuth == null) {
             throw new RuntimeException("No environment variable found NIFI_API_AUTH!");
         }
         expect(vault.resolveSecret(NifiDataFlowController.NIFI_CREDENTIALS)).andReturn(nifiAuth);
+        expect(vault.resolveSecret(storageAccount+"-key1")).andReturn(storageAccountKey);
         replay(vault);
         controller = new NifiDataFlowController(config, typeManager, monitor, vault, httpClient);
     }
 
     @Test
+    @Timeout(value = 60)
+    void initiateFlow_withAtlasCatalog() throws InterruptedException {
+
+        // create custom atlas type and an instance
+        String id;
+        AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{"http://localhost:21000"}, new String[]{"admin", "admin"}));
+        try {
+            atlasApi.createCustomTypes("NifiTestEntity", Set.of("DataSet"), AtlasCustomTypeAttribute.AZURE_BLOB_ATTRS);
+        } catch (Exception ignored) {
+        }
+        id = atlasApi.createEntity("NifiTestEntity", new HashMap<>() {{
+            put("name", blobName);
+            put("qualifiedName", blobName);
+            put("account", storageAccount);
+            put("blobname", blobName);
+            put("container", containerName);
+            put("type", "AzureStorage");
+            put("keyName", storageAccount+"-key1");
+        }});
+
+        // perform the actual source file properties in Apache Atlas
+        var lookup = new AtlasDataEntryPropertyLookup(atlasApi);
+        DataEntry<DataEntryPropertyLookup> entry = DataEntry.Builder.newInstance().id(id).lookup(lookup).build();
+
+        // connect the "source" (i.e. the lookup) and the "destination"
+        DataRequest dataRequest = DataRequest.Builder.newInstance()
+                .id(id)
+                .dataEntry(entry)
+                .dataDestination(AzureStorageDestination.Builder.newInstance()
+                        .account(storageAccount)
+                        .container(containerName)
+                        .blobname("bike_very_new.jpg")
+                        .key(storageAccountKey)
+                        .build())
+                .build();
+
+        //act
+        DataFlowInitiateResponse response = controller.initiateFlow(dataRequest);
+
+        //assert
+        assertEquals(ResponseStatus.OK, response.getStatus());
+
+        atlasApi.deleteEntities(Collections.singletonList(id));
+
+        // will fail if new blob is not there after 60 seconds
+        while (listBlobs().stream().noneMatch(blob -> blob.getName().equals("bike_very_new.jpg"))) {
+            //noinspection BusyWait
+            Thread.sleep(500);
+        }
+
+    }
+
+    @Test
     @Timeout(value = 10)
-    void initiateFlow() throws InterruptedException {
+    void initiateFlow_withInMemCatalog() throws InterruptedException {
         var ext = GenericDataEntryPropertyLookup.Builder.newInstance().property("type", "AzureStorage")
                 .property("account", storageAccount)
                 .property("container", containerName)
                 .property("blobname", blobName)
-                .property("key", storageAccountKey)
+                .property("keyName", storageAccount+"-key1")
                 .build();
 
         String id = UUID.randomUUID().toString();
@@ -185,7 +241,7 @@ class NifiDataFlowControllerTest {
                 .property("account", storageAccount)
                 .property("container", containerName)
                 .property("blobname", "notexist.png")
-                .property("key", storageAccountKey)
+                .property("keyName", storageAccount+"-key1")
                 .build();
 
         String id = UUID.randomUUID().toString();

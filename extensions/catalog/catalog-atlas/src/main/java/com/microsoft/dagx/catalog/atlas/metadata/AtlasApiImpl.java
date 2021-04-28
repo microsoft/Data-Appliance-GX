@@ -64,7 +64,7 @@ public class AtlasApiImpl implements AtlasApi {
     }
 
     @Override
-    public AtlasTypesDef createCustomTypes(String typeName, Set<String> superTypeNames, List<TypeAttribute> attributes) {
+    public AtlasTypesDef createCustomTypes(String typeName, Set<String> superTypeNames, List<AtlasCustomTypeAttribute> attributes) {
         var attrs = attributes.stream().map(attr -> attr.isRequired()
                 ? createRequiredAttrDef(attr.getName(), attr.getType())
                 : createOptionalAttrDef(attr.getName(), attr.getType())).collect(Collectors.toList());
