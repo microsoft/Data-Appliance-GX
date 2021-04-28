@@ -14,15 +14,15 @@ import java.util.Map;
 @JsonTypeName("dagx:genericdataentryextensions")
 @JsonDeserialize(builder = GenericDataEntryPropertyLookup.Builder.class)
 public class GenericDataEntryPropertyLookup extends DataEntryPropertyLookup {
-    private Map<String, String> properties = new HashMap<>();
+    private Map<String, Object> properties = new HashMap<>();
 
-    public Map<String, String> getProperties() {
+    public Map<String, Object> getProperties() {
         return properties;
     }
 
     @Override
     public Map<String, Object> getPropertiesForEntity(String id) {
-        return null;
+        return getProperties();
     }
 
     @JsonPOJOBuilder(withPrefix = "")
