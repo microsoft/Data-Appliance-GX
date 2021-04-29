@@ -32,7 +32,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.io.File;
 import java.net.URL;
@@ -48,7 +47,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 //@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 class NifiDataFlowControllerTest {
 
-    private final static String nifiHost = "http://localhost:8080";
+    private static final String NIFI_HOST = "http://localhost";
+    private final static String NIFI_API_HOST = NIFI_HOST + ":8080";
     private final static String storageAccount = "dagxblobstoreitest";
     private static String storageAccountKey = null;
 
@@ -60,8 +60,11 @@ class NifiDataFlowControllerTest {
     private static BlobContainerClient blobContainerClient;
     private final static String atlasUsername = "admin";
     private final static String atlasPassword = "admin";
+    private static final String ATLAS_API_HOST = "http://localhost:21000";
     private NifiDataFlowController controller;
     private Vault vault;
+    private static final String NIFI_CONTENTLISTENER_HOST = NIFI_HOST+":8888";
+
 
     @BeforeAll
     public static void prepare() throws Exception {
@@ -79,7 +82,7 @@ class NifiDataFlowControllerTest {
 
         var f = Thread.currentThread().getContextClassLoader().getResource("TwoClouds.xml");
         var file = new File(Objects.requireNonNull(f).toURI());
-        client = new NifiApiClient(nifiHost, typeManager, httpClient);
+        client = new NifiApiClient(NIFI_API_HOST, typeManager, httpClient);
         String processGroup = "root";
         try {
             var templateId = client.uploadTemplate(processGroup, file);
@@ -96,7 +99,7 @@ class NifiDataFlowControllerTest {
         // create azure storage container
         containerName = "nifi-itest-" + UUID.randomUUID();
 
-        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", "Z3sehdyeMxDWNS6PI9avYCQ/CHCDEYPCx9CQkf9vU+CyTOp8QfJbTzasA9MXEwIYxJeMwdBnnYzuYUa44ILwiA==\n");
+        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", null);
         if (storageAccountKey == null) {
             throw new RuntimeException("No environment variable found AZ_STORAGE_KEY!");
         }
@@ -128,17 +131,17 @@ class NifiDataFlowControllerTest {
 
         Monitor monitor = new Monitor() {
         };
-        NifiTransferManagerConfiguration config = NifiTransferManagerConfiguration.Builder.newInstance().url("http://localhost:8888")
+        NifiTransferManagerConfiguration config = NifiTransferManagerConfiguration.Builder.newInstance().url(NIFI_CONTENTLISTENER_HOST)
                 .build();
         typeManager.registerTypes(DataRequest.class);
 
         vault = mock(MockType.STRICT, Vault.class);
-        var nifiAuth = propOrEnv("NIFI_API_AUTH", "Basic dGVzdHVzZXJAZ2FpYXguY29tOmdYcHdkIzIwMiE=");
+        var nifiAuth = propOrEnv("NIFI_API_AUTH", null);
         if (nifiAuth == null) {
             throw new RuntimeException("No environment variable found NIFI_API_AUTH!");
         }
         expect(vault.resolveSecret(NifiDataFlowController.NIFI_CREDENTIALS)).andReturn(nifiAuth);
-        expect(vault.resolveSecret(storageAccount+"-key1")).andReturn(storageAccountKey);
+        expect(vault.resolveSecret(storageAccount + "-key1")).andReturn(storageAccountKey);
         replay(vault);
         controller = new NifiDataFlowController(config, typeManager, monitor, vault, httpClient);
     }
@@ -149,7 +152,7 @@ class NifiDataFlowControllerTest {
 
         // create custom atlas type and an instance
         String id;
-        AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{"http://localhost:21000"}, new String[]{atlasUsername, atlasPassword}));
+        AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{ATLAS_API_HOST}, new String[]{atlasUsername, atlasPassword}));
         try {
             atlasApi.createCustomTypes("NifiTestEntity", Set.of("DataSet"), AtlasCustomTypeAttribute.AZURE_BLOB_ATTRS);
         } catch (Exception ignored) {
@@ -161,7 +164,7 @@ class NifiDataFlowControllerTest {
             put("blobname", blobName);
             put("container", containerName);
             put("type", "AzureStorage");
-            put("keyName", storageAccount+"-key1");
+            put("keyName", storageAccount + "-key1");
         }});
 
         // perform the actual source file properties in Apache Atlas
@@ -199,15 +202,9 @@ class NifiDataFlowControllerTest {
     @Test
     @Timeout(value = 10)
     void initiateFlow_withInMemCatalog() throws InterruptedException {
-        var ext = GenericDataEntryPropertyLookup.Builder.newInstance().property("type", "AzureStorage")
-                .property("account", storageAccount)
-                .property("container", containerName)
-                .property("blobname", blobName)
-                .property("keyName", storageAccount+"-key1")
-                .build();
 
         String id = UUID.randomUUID().toString();
-        DataEntry<DataEntryPropertyLookup> entry = DataEntry.Builder.newInstance().id(id).lookup(ext).build();
+        DataEntry<DataEntryPropertyLookup> entry = DataEntry.Builder.newInstance().id(id).lookup(createLookup()).build();
 
         DataRequest dataRequest = DataRequest.Builder.newInstance()
                 .id(id)
@@ -238,16 +235,10 @@ class NifiDataFlowControllerTest {
     @Timeout(10)
     void initiateFlow_sourceNotFound() throws InterruptedException {
         var bulletinSize = client.getBulletinBoard().bulletins.size();
-
-        var ext = GenericDataEntryPropertyLookup.Builder.newInstance().property("type", "AzureStorage")
-                .property("account", storageAccount)
-                .property("container", containerName)
-                .property("blobname", "notexist.png")
-                .property("keyName", storageAccount+"-key1")
-                .build();
-
         String id = UUID.randomUUID().toString();
-        DataEntry<DataEntryPropertyLookup> entry = DataEntry.Builder.newInstance().id(id).lookup(ext).build();
+        GenericDataEntryPropertyLookup lookup = createLookup();
+        lookup.getProperties().replace("blobname", "notexist.png");
+        DataEntry<DataEntryPropertyLookup> entry = DataEntry.Builder.newInstance().id(id).lookup(lookup).build();
 
         DataRequest dataRequest = DataRequest.Builder.newInstance()
                 .id(id)
@@ -274,28 +265,11 @@ class NifiDataFlowControllerTest {
         assertEquals(bulletinSize + 1, client.getBulletinBoard().bulletins.size());
     }
 
-    @Test
-    void initiateFlow_noDestinationDefined() {
-        String id = UUID.randomUUID().toString();
-        DataEntry<DataEntryPropertyLookup> entry = DataEntry.Builder.newInstance().lookup(GenericDataEntryPropertyLookup.Builder.newInstance().build()).build();
-
-        DataRequest dataRequest = DataRequest.Builder.newInstance()
-                .id(id)
-                .dataEntry(entry)
-                .destinationType("AzureStorage")
-                .dataDestination( AzureStorageDestination.Builder.newInstance().build())
-                .build();
-
-        var response = controller.initiateFlow(dataRequest);
-        assertThat(response.getStatus()).isEqualTo(ResponseStatus.FATAL_ERROR);
-        assertThat(response.getError()).isEqualTo("Data target is null");
-
-    }
 
     @Test
     void initiateFlow_noCredsFoundInVault() {
         String id = UUID.randomUUID().toString();
-        DataEntry<DataEntryPropertyLookup> entry = DataEntry.Builder.newInstance().lookup(GenericDataEntryPropertyLookup.Builder.newInstance().build()).build();
+        DataEntry<DataEntryPropertyLookup> entry = DataEntry.Builder.newInstance().lookup(createLookup()).build();
 
         DataRequest dataRequest = DataRequest.Builder.newInstance()
                 .id(id)
@@ -320,6 +294,18 @@ class NifiDataFlowControllerTest {
         var response = controller.initiateFlow(dataRequest);
         assertThat(response.getStatus()).isEqualTo(ResponseStatus.FATAL_ERROR);
         assertThat(response.getError()).isEqualTo("NiFi vault credentials were not found");
+    }
+
+
+    private GenericDataEntryPropertyLookup createLookup() {
+        return GenericDataEntryPropertyLookup.Builder.newInstance()
+                .property("type", "AzureStorage")
+                .property("account", storageAccount)
+                .property("container", containerName)
+                .property("blobname", blobName)
+                .property("keyName", storageAccount + "-key1")
+                .build();
+
     }
 
     private PagedIterable<BlobItem> listBlobs() {

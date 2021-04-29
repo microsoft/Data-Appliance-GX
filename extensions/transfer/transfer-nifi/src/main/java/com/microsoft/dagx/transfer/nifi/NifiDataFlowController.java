@@ -82,12 +82,10 @@ public class NifiDataFlowController implements DataFlowController {
         if (sourceKeyName == null) {
             return new DataFlowInitiateResponse(FATAL_ERROR, "No 'keyName' property was found for the source file (ID=" + dataEntry.getId() + ")!");
         }
-
-        sourceprops.put("key", vault.resolveSecret(sourceKeyName.toString()));
-
         if (sourceprops.isEmpty()) {
             return new DataFlowInitiateResponse(FATAL_ERROR, "No catalog entry was found for the source file (ID=" + dataEntry.getId() + ")!");
         }
+        sourceprops.put("key", vault.resolveSecret(sourceKeyName.toString()));
 
         Request request = createTransferRequest(sourceprops, dataRequest.getDataDestination(), basicAuthCreds);
 
