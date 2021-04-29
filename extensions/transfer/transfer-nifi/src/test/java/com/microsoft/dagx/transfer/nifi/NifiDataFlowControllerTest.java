@@ -45,7 +45,7 @@ import static org.easymock.EasyMock.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
+//@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 class NifiDataFlowControllerTest {
 
     private final static String nifiHost = "http://localhost:8080";
@@ -67,10 +67,10 @@ class NifiDataFlowControllerTest {
     public static void prepare() throws Exception {
 
         // this is necessary because the @EnabledIf... annotation does not prevent @BeforeAll to be called
-        var isCi = propOrEnv("CI", "false");
-        if (!Boolean.parseBoolean(isCi)) {
-            return;
-        }
+//        var isCi = propOrEnv("CI", "false");
+//        if (!Boolean.parseBoolean(isCi)) {
+//            return;
+//        }
 
         typeManager = new TypeManager();
         typeManager.getMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -96,7 +96,7 @@ class NifiDataFlowControllerTest {
         // create azure storage container
         containerName = "nifi-itest-" + UUID.randomUUID();
 
-        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", null);
+        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", "Z3sehdyeMxDWNS6PI9avYCQ/CHCDEYPCx9CQkf9vU+CyTOp8QfJbTzasA9MXEwIYxJeMwdBnnYzuYUa44ILwiA==\n");
         if (storageAccountKey == null) {
             throw new RuntimeException("No environment variable found AZ_STORAGE_KEY!");
         }
@@ -133,7 +133,7 @@ class NifiDataFlowControllerTest {
         typeManager.registerTypes(DataRequest.class);
 
         vault = mock(MockType.STRICT, Vault.class);
-        var nifiAuth = propOrEnv("NIFI_API_AUTH", null);
+        var nifiAuth = propOrEnv("NIFI_API_AUTH", "Basic dGVzdHVzZXJAZ2FpYXguY29tOmdYcHdkIzIwMiE=");
         if (nifiAuth == null) {
             throw new RuntimeException("No environment variable found NIFI_API_AUTH!");
         }
@@ -282,6 +282,8 @@ class NifiDataFlowControllerTest {
         DataRequest dataRequest = DataRequest.Builder.newInstance()
                 .id(id)
                 .dataEntry(entry)
+                .destinationType("AzureStorage")
+                .dataDestination( AzureStorageDestination.Builder.newInstance().build())
                 .build();
 
         var response = controller.initiateFlow(dataRequest);
