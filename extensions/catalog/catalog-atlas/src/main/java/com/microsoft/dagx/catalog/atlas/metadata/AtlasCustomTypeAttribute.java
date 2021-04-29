@@ -6,15 +6,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AtlasCustomTypeAttribute {
+    public static final String ATLAS_TYPE_STRING = "string";
+    public static final String ATLAS_TYPE_INT= "int";
     /**
      * Pre-defined list of attributes that are required for a transfer that originates from Azure Blob Store
      */
     public static final List<AtlasCustomTypeAttribute> AZURE_BLOB_ATTRS = new ArrayList<>() {{
-        add(new AtlasCustomTypeAttribute("account", "string", true));
-        add(new AtlasCustomTypeAttribute("blobname", "string", true));
-        add(new AtlasCustomTypeAttribute("container", "string", true));
-        add(new AtlasCustomTypeAttribute("type", "string", true));
-        add(new AtlasCustomTypeAttribute("keyName", "string", true));
+        add(new AtlasCustomTypeAttribute("account", ATLAS_TYPE_STRING, true));
+        add(new AtlasCustomTypeAttribute("blobname", ATLAS_TYPE_STRING, true));
+        add(new AtlasCustomTypeAttribute("container", ATLAS_TYPE_STRING, true));
+        add(new AtlasCustomTypeAttribute("type", ATLAS_TYPE_STRING, true));
+        add(new AtlasCustomTypeAttribute("keyName", ATLAS_TYPE_STRING, true));
+    }};
+    public static final List<AtlasCustomTypeAttribute> AMAZON_S3_BUCKET_ATTRS = new ArrayList<>() {{
+        add(new AtlasCustomTypeAttribute("region", ATLAS_TYPE_STRING, true));
+        add(new AtlasCustomTypeAttribute("bucketName", ATLAS_TYPE_STRING, true));
+        add(new AtlasCustomTypeAttribute("keyName", ATLAS_TYPE_STRING, true));
+
     }};
     @JsonProperty
     private String name;

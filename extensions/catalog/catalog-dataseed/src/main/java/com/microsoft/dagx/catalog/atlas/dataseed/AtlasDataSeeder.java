@@ -37,6 +37,7 @@ public class AtlasDataSeeder {
     public List<AtlasTypesDef> createTypedefs() {
         List<AtlasTypesDef> entityTypes = new ArrayList<>();
         entityTypes.add(atlasApi.createCustomTypes("AzureBlobFile", Set.of("DataSet"), AtlasCustomTypeAttribute.AZURE_BLOB_ATTRS));
+        entityTypes.add(atlasApi.createCustomTypes("S3Bucket", Set.of("DataSet"), AtlasCustomTypeAttribute.AMAZON_S3_BUCKET_ATTRS));
         //todo: add more source file types, e.g. S3, etc.
         return entityTypes;
     }

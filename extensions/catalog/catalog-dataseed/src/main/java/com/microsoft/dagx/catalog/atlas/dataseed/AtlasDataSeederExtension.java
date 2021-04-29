@@ -86,7 +86,11 @@ public class AtlasDataSeederExtension implements ServiceExtension {
             monitor.info("Cleaning up Classifications");
             dataSeeder.deleteClassifications(classificationNames);
             monitor.info("Cleaning up Entity Types");
-            dataSeeder.deleteEntityTypes(entityTypes);
+            try {
+                dataSeeder.deleteEntityTypes(entityTypes);
+            } catch (DagxException ex) {
+                monitor.severe("Error cleaning up Atlas entities", ex);
+            }
         }
     }
 
