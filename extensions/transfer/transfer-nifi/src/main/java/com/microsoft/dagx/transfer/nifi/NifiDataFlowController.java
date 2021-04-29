@@ -39,7 +39,7 @@ public class NifiDataFlowController implements DataFlowController {
     private static final String CONTENTLISTENER = "/contentListener";
     private static final MediaType JSON = MediaType.get("application/json");
     public static final String NIFI_CREDENTIALS = "nifi.credentials";
-
+    private static final String SOURCE_FILE_ACCESS_KEY_NAME = "keyName";
 
     private final String baseUrl;
     private final TypeManager typeManager;
@@ -77,7 +77,7 @@ public class NifiDataFlowController implements DataFlowController {
         DataEntryPropertyLookup lookup = dataEntry.getLookup();
         var sourceprops = lookup.getPropertiesForEntity(dataEntry.getId());
         // the "keyName" entry should always be there, regardless of the source storage system
-        var sourceKeyName = sourceprops.get("keyName");
+        var sourceKeyName = sourceprops.get(SOURCE_FILE_ACCESS_KEY_NAME);
 
         if (sourceKeyName == null) {
             return new DataFlowInitiateResponse(FATAL_ERROR, "No 'keyName' property was found for the source file (ID=" + dataEntry.getId() + ")!");

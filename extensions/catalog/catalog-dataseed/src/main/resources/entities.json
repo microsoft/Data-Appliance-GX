@@ -1,19 +1,22 @@
 {
-  "entityTypeName" : "BlobFile",
-  "entities" : [
+  "entityTypeName": "AzureBlobFile",
+  "entities": [
     {
-
-      "name" : "SampleBlob",
-      "displayName" : "Sample Blob",
+      "type": "AzureBlobFile",
+      "displayName": "AzureBlobFile",
       "qualifiedName": "AzureStorage/TestAccount/TestContainer/testblob.jpg",
-      "description" : "This is a Sample Blob stored in Azure Blob Store",
-      "providerName" : "AzureStorage",
-      "account" : "TestAccount",
-      "container" : "TestContainer",
-      "id" : "testblob.jpg",
-      "blobName" : "testblob.jpg",
-      "vaultName" :  "DagxKeyVault-itest",
-      "classifications": ["Policy_C", "Duty_B", "Permission_A"]
+      "description": "This is a Sample Blob stored in Azure Blob Store",
+      "providerName": "AzureStorage",
+      "account": "TestAccount",
+      "container": "TestContainer",
+      "blobname": "testblob.jpg",
+      "name": "testblob.jpg",
+      "keyName": "TestContainer-key1",
+      "classifications": [
+        "Policy_C",
+        "Duty_B",
+        "Permission_A"
+      ]
     }
   ]
 }

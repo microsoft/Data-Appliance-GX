@@ -58,6 +58,8 @@ class NifiDataFlowControllerTest {
     private static String containerName;
     private static NifiApiClient client;
     private static BlobContainerClient blobContainerClient;
+    private final static String atlasUsername = "admin";
+    private final static String atlasPassword = "admin";
     private NifiDataFlowController controller;
     private Vault vault;
 
@@ -147,7 +149,7 @@ class NifiDataFlowControllerTest {
 
         // create custom atlas type and an instance
         String id;
-        AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{"http://localhost:21000"}, new String[]{"admin", "admin"}));
+        AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{"http://localhost:21000"}, new String[]{atlasUsername, atlasPassword}));
         try {
             atlasApi.createCustomTypes("NifiTestEntity", Set.of("DataSet"), AtlasCustomTypeAttribute.AZURE_BLOB_ATTRS);
         } catch (Exception ignored) {
