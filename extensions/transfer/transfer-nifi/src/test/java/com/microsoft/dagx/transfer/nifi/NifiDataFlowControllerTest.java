@@ -148,7 +148,7 @@ public class NifiDataFlowControllerTest {
     }
 
     @Test
-    @Timeout(value = 10)
+    @Timeout(value = 60)
     void initiateFlow_withAtlasCatalog() throws InterruptedException {
 
         // create custom atlas type and an instance
