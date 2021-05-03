@@ -70,10 +70,10 @@ public class NifiDataFlowControllerTest {
     public static void prepare() throws Exception {
 
 //         this is necessary because the @EnabledIf... annotation does not prevent @BeforeAll to be called
-//        var isCi = propOrEnv("CI", "false");
-//        if (!Boolean.parseBoolean(isCi)) {
-//            return;
-//        }
+        var isCi = propOrEnv("CI", "false");
+        if (!Boolean.parseBoolean(isCi)) {
+            return;
+        }
 
         typeManager = new TypeManager();
         typeManager.getMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
