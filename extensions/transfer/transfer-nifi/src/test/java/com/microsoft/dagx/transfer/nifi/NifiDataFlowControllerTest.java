@@ -6,10 +6,11 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.microsoft.dagx.catalog.atlas.dataseed.AzureBlobFileEntityBuilder;
 import com.microsoft.dagx.catalog.atlas.metadata.AtlasApi;
 import com.microsoft.dagx.catalog.atlas.metadata.AtlasApiImpl;
-import com.microsoft.dagx.catalog.atlas.metadata.AtlasCustomTypeAttribute;
 import com.microsoft.dagx.catalog.atlas.metadata.AtlasDataEntryPropertyLookup;
+import com.microsoft.dagx.schema.azure.AzureSchema;
 import com.microsoft.dagx.spi.DagxException;
 import com.microsoft.dagx.spi.monitor.Monitor;
 import com.microsoft.dagx.spi.security.Vault;
@@ -26,11 +27,7 @@ import com.microsoft.dagx.transfer.nifi.azureblob.AzureEndpointConverter;
 import okhttp3.OkHttpClient;
 import org.apache.atlas.AtlasClientV2;
 import org.easymock.MockType;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.io.File;
@@ -47,9 +44,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 @EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 public class NifiDataFlowControllerTest {
 
-    private static final String ATLAS_API_HOST = "http://localhost:21000";
-    private static final String NIFI_CONTENTLISTENER_HOST = "http://localhost:8888";
-    private final static String NIFI_API_HOST = "http://localhost:8080";
+    private static final String ATLAS_API_HOST = "http://192.168.2.17:21000";
+    private static final String NIFI_CONTENTLISTENER_HOST = "http://192.168.2.17:8888";
+    private final static String NIFI_API_HOST = "http://192.168.2.17:8080";
     private final static String storageAccount = "dagxblobstoreitest";
     private static String storageAccountKey = null;
 
@@ -153,20 +150,20 @@ public class NifiDataFlowControllerTest {
 
         // create custom atlas type and an instance
         String id;
+        var schema= new AzureSchema();
         AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{ATLAS_API_HOST}, new String[]{atlasUsername, atlasPassword}));
         try {
-            atlasApi.createCustomTypes("NifiTestEntity", Set.of("DataSet"), AtlasCustomTypeAttribute.AZURE_BLOB_ATTRS);
+
+            atlasApi.createCustomTypes(schema.getName(), Set.of("DataSet"), new ArrayList<>(schema.getAttributes()));
         } catch (Exception ignored) {
         }
-        id = atlasApi.createEntity("NifiTestEntity", new HashMap<>() {{
-            put("name", blobName);
-            put("qualifiedName", blobName);
-            put("account", storageAccount);
-            put("blobname", blobName);
-            put("container", containerName);
-            put("type", "AzureStorage");
-            put("keyName", storageAccount + "-key1");
-        }});
+        id = atlasApi.createEntity(schema.getName(), AzureBlobFileEntityBuilder.newInstance()
+                .withDescription("This is a test description")
+                .withAccount(storageAccount)
+                .withContainer(containerName)
+                .withBlobname(blobName)
+                .withKeyName(storageAccount+"-key1")
+                .build());
 
         // perform the actual source file properties in Apache Atlas
         var lookup = new AtlasDataEntryPropertyLookup(atlasApi);
@@ -202,7 +199,7 @@ public class NifiDataFlowControllerTest {
     }
 
     @Test
-    @Timeout(value = 100000)
+    @Timeout(value = 10)
     void initiateFlow_withInMemCatalog() throws InterruptedException {
 
         String id = UUID.randomUUID().toString();
