@@ -11,8 +11,6 @@ public class AzureSchema extends Schema {
         attributes.add(new SchemaAttribute("account", true));
         attributes.add(new SchemaAttribute("blobname", true));
         attributes.add(new SchemaAttribute("container", true));
-        attributes.add(new SchemaAttribute("type", true));
-        attributes.add(new SchemaAttribute("keyName", true));
     }
 
     @Override

@@ -87,9 +87,6 @@ public class NifiDataFlowController implements DataFlowController {
             return new DataFlowInitiateResponse(FATAL_ERROR, "No 'keyName' property was found for the destination file (ID=" + dataEntry.getId() + ")!");
         }
 
-        var sourceType = sourceAddress.getType();
-        var destType = sourceAddress.getType();
-
         var source = converter.convert(sourceAddress);
         var dest= converter.convert(destinationAddress);
 

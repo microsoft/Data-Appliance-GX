@@ -41,12 +41,12 @@ import static org.easymock.EasyMock.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
+//@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 public class NifiDataFlowControllerTest {
 
-    private static final String ATLAS_API_HOST = "http://localhost:21000";
-    private static final String NIFI_CONTENTLISTENER_HOST = "http://localhost:8888";
-    private final static String NIFI_API_HOST = "http://localhost:8080";
+    private static final String ATLAS_API_HOST = "http://192.168.2.17:21000";
+    private static final String NIFI_CONTENTLISTENER_HOST = "http://192.168.2.17:8888";
+    private final static String NIFI_API_HOST = "http://192.168.2.17:8080";
     private final static String storageAccount = "dagxblobstoreitest";
     private static String storageAccountKey = null;
 
@@ -67,10 +67,10 @@ public class NifiDataFlowControllerTest {
     public static void prepare() throws Exception {
 
 //         this is necessary because the @EnabledIf... annotation does not prevent @BeforeAll to be called
-        var isCi = propOrEnv("CI", "false");
-        if (!Boolean.parseBoolean(isCi)) {
-            return;
-        }
+//        var isCi = propOrEnv("CI", "false");
+//        if (!Boolean.parseBoolean(isCi)) {
+//            return;
+//        }
 
         typeManager = new TypeManager();
         typeManager.getMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -96,7 +96,7 @@ public class NifiDataFlowControllerTest {
         // create azure storage container
         containerName = "nifi-itest-" + UUID.randomUUID();
 
-        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", null);
+        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", "Z3sehdyeMxDWNS6PI9avYCQ/CHCDEYPCx9CQkf9vU+CyTOp8QfJbTzasA9MXEwIYxJeMwdBnnYzuYUa44ILwiA==");
         if (storageAccountKey == null) {
             throw new RuntimeException("No environment variable found AZ_STORAGE_KEY!");
         }
@@ -125,7 +125,6 @@ public class NifiDataFlowControllerTest {
     @BeforeEach
     void setUp() {
 
-
         Monitor monitor = new Monitor() {
         };
         NifiTransferManagerConfiguration config = NifiTransferManagerConfiguration.Builder.newInstance().url(NIFI_CONTENTLISTENER_HOST)
@@ -133,7 +132,7 @@ public class NifiDataFlowControllerTest {
         typeManager.registerTypes(DataRequest.class);
 
         vault = mock(MockType.STRICT, Vault.class);
-        var nifiAuth = propOrEnv("NIFI_API_AUTH", null);
+        var nifiAuth = propOrEnv("NIFI_API_AUTH", "Basic dGVzdHVzZXJAZ2FpYXguY29tOmdYcHdkIzIwMiE=");
         if (nifiAuth == null) {
             throw new RuntimeException("No environment variable found NIFI_API_AUTH!");
         }
@@ -141,7 +140,9 @@ public class NifiDataFlowControllerTest {
         expect(vault.resolveSecret(storageAccount + "-key1")).andReturn(storageAccountKey);
         expect(vault.resolveSecret(storageAccount + "-key1")).andReturn(storageAccountKey);
         replay(vault);
-        controller = new NifiDataFlowController(config, typeManager, monitor, vault, httpClient, new NifiTransferEndpointConverter(new SchemaRegistry(), vault));
+        SchemaRegistry registry = new SchemaRegistry();
+        registry.register(new AzureSchema());
+        controller = new NifiDataFlowController(config, typeManager, monitor, vault, httpClient, new NifiTransferEndpointConverter(registry, vault));
     }
 
     @Test

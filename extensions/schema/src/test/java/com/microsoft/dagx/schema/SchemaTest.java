@@ -8,30 +8,32 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SchemaTest {
 
     @Test
-    void getAttributes(){
+    void getAttributes() {
         Schema schema = createSchema();
-        assertThat(schema.getAttributes()).hasSize(1);
+        assertThat(schema.getAttributes()).hasSize(3);
     }
 
     @Test
-    void getAttributes_addWithSameName(){
-        var schema= createSchema();
-        var hasAdded= schema.getAttributes().add(new SchemaAttribute("test", false));
+    void getAttributes_addWithSameName() {
+        var schema = createSchema();
+        var hasAdded = schema.getAttributes().add(new SchemaAttribute("test", false));
         assertThat(hasAdded).isTrue();
     }
 
     @Test
-    void getRequiredAttributes(){
-        var schema= createSchema();
+    void getRequiredAttributes() {
+        var schema = createSchema();
         schema.getAttributes().add(new SchemaAttribute("foo", true));
         schema.getAttributes().add(new SchemaAttribute("bar", false));
 
-        assertThat(schema.getRequiredAttributes()).hasSize(2)
-                .allMatch(sa -> sa.getName().equals("foo") || sa.getName().equals("test"));
+        assertThat(schema.getRequiredAttributes()).hasSize(4)
+                .anyMatch(sa -> sa.getName().equals("foo"))
+                .anyMatch(sa -> sa.getName().equals("test"));
     }
+
     @NotNull
     private Schema createSchema() {
-        Schema schema= new Schema() {
+        return new Schema() {
             @Override
             protected void addAttributes() {
                 attributes.add(new SchemaAttribute("test", true));
@@ -42,7 +44,6 @@ public class SchemaTest {
                 return "testSchema";
             }
         };
-        return schema;
     }
 
 }

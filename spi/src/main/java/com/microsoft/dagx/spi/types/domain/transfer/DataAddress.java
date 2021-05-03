@@ -13,12 +13,12 @@ import java.util.Objects;
  */
 @JsonDeserialize(builder = DataAddress.Builder.class)
 public class DataAddress {
-    private String type;
-    private String keyName;
-    private Map<String, String> properties = new HashMap<>();
+    private static final String TYPE = "type";
+    private final String KEYNAME = "keyName";
+    private final Map<String, String> properties = new HashMap<>();
 
     public String getType() {
-        return type;
+        return properties.get(TYPE);
     }
 
     public String getProperty(String key) {
@@ -30,7 +30,7 @@ public class DataAddress {
     }
 
     public String getKeyName() {
-        return keyName;
+        return properties.get(KEYNAME);
     }
 
     private DataAddress() {
@@ -46,7 +46,7 @@ public class DataAddress {
         }
 
         public Builder type(String type) {
-            address.type = type;
+            address.properties.put(TYPE, type);
             return this;
         }
 
@@ -60,13 +60,13 @@ public class DataAddress {
             return this;
         }
         public Builder keyName(String keyName){
-            address.keyName= Objects.requireNonNull(keyName);
+            address.getProperties().put(address.KEYNAME, Objects.requireNonNull(keyName));
             return this;
         }
 
         public DataAddress build() {
-            Objects.requireNonNull(address.type, "type");
-            Objects.requireNonNull(address.keyName, "keyName");
+            Objects.requireNonNull(address.getType(), "type");
+            Objects.requireNonNull(address.getKeyName(), "keyName");
             return address;
         }
 
