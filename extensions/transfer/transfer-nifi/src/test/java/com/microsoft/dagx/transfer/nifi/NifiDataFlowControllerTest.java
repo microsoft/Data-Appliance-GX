@@ -10,6 +10,7 @@ import com.microsoft.dagx.catalog.atlas.dataseed.AzureBlobFileEntityBuilder;
 import com.microsoft.dagx.catalog.atlas.metadata.AtlasApi;
 import com.microsoft.dagx.catalog.atlas.metadata.AtlasApiImpl;
 import com.microsoft.dagx.catalog.atlas.metadata.AtlasDataEntryPropertyLookup;
+import com.microsoft.dagx.schema.SchemaRegistry;
 import com.microsoft.dagx.schema.azure.AzureSchema;
 import com.microsoft.dagx.spi.DagxException;
 import com.microsoft.dagx.spi.monitor.Monitor;
@@ -23,7 +24,6 @@ import com.microsoft.dagx.spi.types.domain.metadata.GenericDataEntryPropertyLook
 import com.microsoft.dagx.spi.types.domain.transfer.DataAddress;
 import com.microsoft.dagx.spi.types.domain.transfer.DataRequest;
 import com.microsoft.dagx.transfer.nifi.api.NifiApiClient;
-import com.microsoft.dagx.transfer.nifi.azureblob.AzureEndpointConverter;
 import okhttp3.OkHttpClient;
 import org.apache.atlas.AtlasClientV2;
 import org.easymock.MockType;
@@ -141,7 +141,7 @@ public class NifiDataFlowControllerTest {
         expect(vault.resolveSecret(storageAccount + "-key1")).andReturn(storageAccountKey);
         expect(vault.resolveSecret(storageAccount + "-key1")).andReturn(storageAccountKey);
         replay(vault);
-        controller = new NifiDataFlowController(config, typeManager, monitor, vault, httpClient, new EndpointConverterRegistry().with("AzureStorage", new AzureEndpointConverter(vault)));
+        controller = new NifiDataFlowController(config, typeManager, monitor, vault, httpClient, new NifiTransferEndpointConverter(new SchemaRegistry(), vault));
     }
 
     @Test

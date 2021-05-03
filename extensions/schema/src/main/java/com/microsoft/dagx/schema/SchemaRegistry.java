@@ -13,15 +13,15 @@ public class SchemaRegistry {
         schemas = new HashMap<>();
     }
 
-    void register(Schema schema){
+    public void register(Schema schema){
         schemas.put(schema.getName(), schema);
     }
 
-    Schema getSchema(String identifier){
+    public Schema getSchema(String identifier){
         return schemas.get(identifier);
     }
 
-    boolean hasSchema(String identifier){
+    public boolean hasSchema(String identifier){
         return schemas.containsKey(identifier);
     }
 
