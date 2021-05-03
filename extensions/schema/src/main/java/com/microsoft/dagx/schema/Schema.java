@@ -2,7 +2,6 @@ package com.microsoft.dagx.schema;
 
 import java.util.AbstractSet;
 import java.util.LinkedHashSet;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public abstract class Schema {
@@ -25,7 +24,7 @@ public abstract class Schema {
         return attributes;
     }
 
-    public List<SchemaAttribute> getRequiredAttributes() {
-        return getAttributes().stream().filter(SchemaAttribute::isRequired).collect(Collectors.toList());
+    public AbstractSet<SchemaAttribute> getRequiredAttributes() {
+        return getAttributes().stream().filter(SchemaAttribute::isRequired).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }

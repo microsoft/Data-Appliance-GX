@@ -16,6 +16,7 @@ public class SchemaRegistry {
     void register(Schema schema){
         schemas.put(schema.getName(), schema);
     }
+
     Schema getSchema(String identifier){
         return schemas.get(identifier);
     }
