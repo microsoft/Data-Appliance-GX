@@ -41,12 +41,12 @@ import static org.easymock.EasyMock.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-//@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
+@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 public class NifiDataFlowControllerTest {
 
-    private static final String ATLAS_API_HOST = "http://192.168.2.17:21000";
-    private static final String NIFI_CONTENTLISTENER_HOST = "http://192.168.2.17:8888";
-    private final static String NIFI_API_HOST = "http://192.168.2.17:8080";
+    private static final String ATLAS_API_HOST = "http://localhost:21000";
+    private static final String NIFI_CONTENTLISTENER_HOST = "http://localhost:8888";
+    private final static String NIFI_API_HOST = "http://localhost:8080";
     private final static String storageAccount = "dagxblobstoreitest";
     private static String storageAccountKey = null;
 
@@ -96,7 +96,7 @@ public class NifiDataFlowControllerTest {
         // create azure storage container
         containerName = "nifi-itest-" + UUID.randomUUID();
 
-        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", "Z3sehdyeMxDWNS6PI9avYCQ/CHCDEYPCx9CQkf9vU+CyTOp8QfJbTzasA9MXEwIYxJeMwdBnnYzuYUa44ILwiA==");
+        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", null);
         if (storageAccountKey == null) {
             throw new RuntimeException("No environment variable found AZ_STORAGE_KEY!");
         }
@@ -132,7 +132,7 @@ public class NifiDataFlowControllerTest {
         typeManager.registerTypes(DataRequest.class);
 
         vault = mock(MockType.STRICT, Vault.class);
-        var nifiAuth = propOrEnv("NIFI_API_AUTH", "Basic dGVzdHVzZXJAZ2FpYXguY29tOmdYcHdkIzIwMiE=");
+        var nifiAuth = propOrEnv("NIFI_API_AUTH", null);
         if (nifiAuth == null) {
             throw new RuntimeException("No environment variable found NIFI_API_AUTH!");
         }
