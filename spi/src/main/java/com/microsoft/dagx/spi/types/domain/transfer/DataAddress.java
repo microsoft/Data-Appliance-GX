@@ -14,7 +14,7 @@ import java.util.Objects;
 @JsonDeserialize(builder = DataAddress.Builder.class)
 public class DataAddress {
     private static final String TYPE = "type";
-    private final String KEYNAME = "keyName";
+    private static final String KEYNAME = "keyName";
     private final Map<String, String> properties = new HashMap<>();
 
     public String getType() {
@@ -38,7 +38,7 @@ public class DataAddress {
 
     @JsonPOJOBuilder(withPrefix = "")
     public static class Builder {
-        private DataAddress address;
+        private final DataAddress address;
 
         @JsonCreator()
         public static Builder newInstance() {
@@ -46,7 +46,7 @@ public class DataAddress {
         }
 
         public Builder type(String type) {
-            address.properties.put(TYPE, type);
+            address.properties.put(TYPE, Objects.requireNonNull(type));
             return this;
         }
 
@@ -60,7 +60,7 @@ public class DataAddress {
             return this;
         }
         public Builder keyName(String keyName){
-            address.getProperties().put(address.KEYNAME, Objects.requireNonNull(keyName));
+            address.getProperties().put(KEYNAME, Objects.requireNonNull(keyName));
             return this;
         }
 

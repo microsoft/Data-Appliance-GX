@@ -78,8 +78,8 @@ public class NifiTransferEndpoint implements Polymorphic {
         }
 
         public NifiTransferEndpoint build() {
-            NifiTransferEndpoint nifiTransferEndpoint = new NifiTransferEndpoint(type);//Objects.requireNonNull(type, "type cannot be null!"));
-            nifiTransferEndpoint.setKey(key);//Objects.requireNonNull(key, "key cannot be null!"));
+            NifiTransferEndpoint nifiTransferEndpoint = new NifiTransferEndpoint(type);
+            nifiTransferEndpoint.setKey(key);
             nifiTransferEndpoint.properties = this.properties;
             return nifiTransferEndpoint;
         }

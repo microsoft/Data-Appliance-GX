@@ -2,6 +2,7 @@ package com.microsoft.dagx.transfer.nifi;
 
 import com.microsoft.dagx.schema.Schema;
 import com.microsoft.dagx.schema.SchemaRegistry;
+import com.microsoft.dagx.schema.SchemaValidationException;
 import com.microsoft.dagx.spi.security.Vault;
 import com.microsoft.dagx.spi.types.domain.transfer.DataAddress;
 
@@ -19,13 +20,18 @@ public class NifiTransferEndpointConverter {
 
     NifiTransferEndpoint convert(DataAddress dataAddress) {
         var type = dataAddress.getType();
-        var schema = schemaRegistry.getSchema(type);
 
+        if(type == null)
+            throw new NifiTransferException("No type was specified!");
+
+        var schema = schemaRegistry.getSchema(type);
         if (schema == null)
             throw new NifiTransferException("No schema is registered for type " + type);
 
         validate(dataAddress, schema);
 
+        dataAddress.getProperties().remove("keyName");
+        dataAddress.getProperties().remove("type");
         return NifiTransferEndpoint.NifiTransferEndpointBuilder.newInstance()
                 .type(type)
                 .key(vault.resolveSecret(dataAddress.getKeyName()))
@@ -40,7 +46,9 @@ public class NifiTransferEndpointConverter {
         //validate required attributes
         schema.getRequiredAttributes().forEach(requiredAttr -> {
             String name = requiredAttr.getName();
-            Objects.requireNonNull(dataAddress.getProperty(name), "Required property is missing in DataAddress: " + name);
+
+            if(dataAddress.getProperty(name) == null)
+                throw new SchemaValidationException("Required property is missing in DataAddress: " + name);
         });
 
         //validate the types of all properties

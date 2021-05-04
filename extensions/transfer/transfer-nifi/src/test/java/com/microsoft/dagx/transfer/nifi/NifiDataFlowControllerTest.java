@@ -11,6 +11,7 @@ import com.microsoft.dagx.catalog.atlas.metadata.AtlasApi;
 import com.microsoft.dagx.catalog.atlas.metadata.AtlasApiImpl;
 import com.microsoft.dagx.catalog.atlas.metadata.AtlasDataEntryPropertyLookup;
 import com.microsoft.dagx.schema.SchemaRegistry;
+import com.microsoft.dagx.schema.SchemaRegistryImpl;
 import com.microsoft.dagx.schema.azure.AzureSchema;
 import com.microsoft.dagx.spi.DagxException;
 import com.microsoft.dagx.spi.monitor.Monitor;
@@ -140,7 +141,7 @@ public class NifiDataFlowControllerTest {
         expect(vault.resolveSecret(storageAccount + "-key1")).andReturn(storageAccountKey);
         expect(vault.resolveSecret(storageAccount + "-key1")).andReturn(storageAccountKey);
         replay(vault);
-        SchemaRegistry registry = new SchemaRegistry();
+        SchemaRegistry registry = new SchemaRegistryImpl();
         registry.register(new AzureSchema());
         controller = new NifiDataFlowController(config, typeManager, monitor, vault, httpClient, new NifiTransferEndpointConverter(registry, vault));
     }

@@ -23,7 +23,7 @@ public class SchemaExtension implements ServiceExtension {
     public void initialize(ServiceExtensionContext context) {
         var monitor= context.getMonitor();
 
-        var sr= new SchemaRegistry();
+        var sr= new SchemaRegistryImpl();
         sr.register(new AzureSchema());
         sr.register(new S3BucketSchema());
 

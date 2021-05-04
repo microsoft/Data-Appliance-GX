@@ -1,31 +1,15 @@
 package com.microsoft.dagx.schema;
 
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
-public class SchemaRegistry {
+public interface SchemaRegistry {
     public static final String FEATURE = "schema-registry";
 
-    private final Map<String, Schema> schemas;
+    void register(Schema schema);
 
-    public SchemaRegistry() {
-        schemas = new HashMap<>();
-    }
+    Schema getSchema(String identifier);
 
-    public void register(Schema schema){
-        schemas.put(schema.getName(), schema);
-    }
+    boolean hasSchema(String identifier);
 
-    public Schema getSchema(String identifier){
-        return schemas.get(identifier);
-    }
-
-    public boolean hasSchema(String identifier){
-        return schemas.containsKey(identifier);
-    }
-
-    public Collection<Schema> getSchemas() {
-        return schemas.values();
-    }
+    Collection<Schema> getSchemas();
 }

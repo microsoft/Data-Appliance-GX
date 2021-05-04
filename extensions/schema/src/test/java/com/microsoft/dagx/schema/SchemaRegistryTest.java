@@ -11,7 +11,7 @@ public class SchemaRegistryTest {
 
     @BeforeEach
     void setup() {
-        schemaRegistry = new SchemaRegistry();
+        schemaRegistry = new SchemaRegistryImpl();
     }
 
     @Test
