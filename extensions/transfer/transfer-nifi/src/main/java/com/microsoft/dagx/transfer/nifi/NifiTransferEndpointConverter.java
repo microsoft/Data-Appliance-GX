@@ -30,11 +30,11 @@ public class NifiTransferEndpointConverter {
 
         validate(dataAddress, schema);
 
-        dataAddress.getProperties().remove("keyName");
+        var keyName= dataAddress.getProperties().remove("keyName");
         dataAddress.getProperties().remove("type");
         return NifiTransferEndpoint.NifiTransferEndpointBuilder.newInstance()
                 .type(type)
-                .key(vault.resolveSecret(dataAddress.getKeyName()))
+                .key(vault.resolveSecret(keyName))
                 .properties(dataAddress.getProperties())
                 .build();
     }

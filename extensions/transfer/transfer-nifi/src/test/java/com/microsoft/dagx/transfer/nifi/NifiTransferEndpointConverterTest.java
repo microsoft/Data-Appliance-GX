@@ -6,17 +6,12 @@ import com.microsoft.dagx.schema.SchemaRegistry;
 import com.microsoft.dagx.schema.SchemaValidationException;
 import com.microsoft.dagx.spi.security.Vault;
 import com.microsoft.dagx.spi.types.domain.transfer.DataAddress;
-import org.assertj.core.api.Assertions;
-import org.easymock.Mock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.rmi.registry.Registry;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.easymock.EasyMock.*;
-import static org.junit.jupiter.api.Assertions.*;
 
 class NifiTransferEndpointConverterTest {
 
@@ -30,6 +25,7 @@ class NifiTransferEndpointConverterTest {
         registry= mock(SchemaRegistry.class);
         converter = new NifiTransferEndpointConverter(registry, vault);
 
+        expect(vault.resolveSecret("VerySecret")).andReturn("thesecret").times(1);
     }
 
     @Test

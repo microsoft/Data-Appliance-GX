@@ -42,12 +42,12 @@ import static org.easymock.EasyMock.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
-@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
+//@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 public class NifiDataFlowControllerTest {
 
-    private static final String ATLAS_API_HOST = "http://localhost:21000";
-    private static final String NIFI_CONTENTLISTENER_HOST = "http://localhost:8888";
-    private final static String NIFI_API_HOST = "http://localhost:8080";
+    private static final String ATLAS_API_HOST = "http://192.168.2.17:21000";
+    private static final String NIFI_CONTENTLISTENER_HOST = "http://192.168.2.17:8888";
+    private final static String NIFI_API_HOST = "http://192.168.2.17:8080";
     private final static String storageAccount = "dagxblobstoreitest";
     private static String storageAccountKey = null;
 
@@ -61,7 +61,6 @@ public class NifiDataFlowControllerTest {
     private final static String atlasPassword = "admin";
     private NifiDataFlowController controller;
     private Vault vault;
-
 
 
     @BeforeAll
@@ -97,7 +96,7 @@ public class NifiDataFlowControllerTest {
         // create azure storage container
         containerName = "nifi-itest-" + UUID.randomUUID();
 
-        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", null);
+        storageAccountKey = propOrEnv("AZ_STORAGE_KEY", "Z3sehdyeMxDWNS6PI9avYCQ/CHCDEYPCx9CQkf9vU+CyTOp8QfJbTzasA9MXEwIYxJeMwdBnnYzuYUa44ILwiA==");
         if (storageAccountKey == null) {
             throw new RuntimeException("No environment variable found AZ_STORAGE_KEY!");
         }
@@ -133,7 +132,7 @@ public class NifiDataFlowControllerTest {
         typeManager.registerTypes(DataRequest.class);
 
         vault = mock(MockType.STRICT, Vault.class);
-        var nifiAuth = propOrEnv("NIFI_API_AUTH", null);
+        var nifiAuth = propOrEnv("NIFI_API_AUTH", "Basic dGVzdHVzZXJAZ2FpYXguY29tOmdYcHdkIzIwMiE=");
         if (nifiAuth == null) {
             throw new RuntimeException("No environment variable found NIFI_API_AUTH!");
         }
@@ -152,7 +151,7 @@ public class NifiDataFlowControllerTest {
 
         // create custom atlas type and an instance
         String id;
-        var schema= new AzureSchema();
+        var schema = new AzureSchema();
         AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{ATLAS_API_HOST}, new String[]{atlasUsername, atlasPassword}));
         try {
 
@@ -164,7 +163,7 @@ public class NifiDataFlowControllerTest {
                 .withAccount(storageAccount)
                 .withContainer(containerName)
                 .withBlobname(blobName)
-                .withKeyName(storageAccount+"-key1")
+                .withKeyName(storageAccount + "-key1")
                 .build());
 
         // perform the actual source file properties in Apache Atlas
@@ -238,7 +237,10 @@ public class NifiDataFlowControllerTest {
         String id = UUID.randomUUID().toString();
         GenericDataEntryPropertyLookup lookup = createLookup();
         lookup.getProperties().replace("blobname", "notexist.png");
-        DataEntry<DataEntryPropertyLookup> entry = DataEntry.Builder.newInstance().id(id).lookup(lookup).build();
+        DataEntry<DataEntryPropertyLookup> entry = DataEntry.Builder.newInstance()
+                .id(id)
+                .lookup(lookup)
+                .build();
 
         DataRequest dataRequest = DataRequest.Builder.newInstance()
                 .id(id)
@@ -269,7 +271,7 @@ public class NifiDataFlowControllerTest {
         DataRequest dataRequest = DataRequest.Builder.newInstance()
                 .id(id)
                 .dataDestination(DataAddress.Builder.newInstance().type("TestType")
-                        .keyName(storageAccount+"-key1").build())
+                        .keyName(storageAccount + "-key1").build())
                 .dataEntry(entry)
                 .build();
 
