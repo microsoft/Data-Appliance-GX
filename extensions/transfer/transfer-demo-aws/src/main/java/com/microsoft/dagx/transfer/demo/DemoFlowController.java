@@ -53,7 +53,7 @@ public class DemoFlowController implements DataFlowController {
 
         var dt = convertSecret(awsSecret);
 
-        return copyToBucket(content, bucketName, region, dt);
+        return copyToBucket(content, bucketName, region);
 
     }
 
