@@ -38,8 +38,7 @@ public class AtlasApiImpl implements AtlasApi {
         typedef.setClassificationDefs(defs);
 
         try {
-            atlasClient.createAtlasTypeDefs(typedef);
-            return typedef;
+            return atlasClient.createAtlasTypeDefs(typedef);
         } catch (AtlasServiceException e) {
             throw new DagxException(e);
         }
