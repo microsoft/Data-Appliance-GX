@@ -6,6 +6,7 @@
 package com.microsoft.dagx.schema;
 
 import com.microsoft.dagx.schema.aws.S3BucketSchema;
+import com.microsoft.dagx.schema.azure.AzureBlobHasPolicyRelationshipSchema;
 import com.microsoft.dagx.schema.azure.AzureBlobStoreSchema;
 import com.microsoft.dagx.schema.policy.PolicySchema;
 import com.microsoft.dagx.spi.system.ServiceExtension;
@@ -33,6 +34,7 @@ public class SchemaExtension implements ServiceExtension {
         sr.register(new AzureBlobStoreSchema());
         sr.register(new PolicySchema());
         sr.register(new S3BucketSchema());
+        sr.register(new AzureBlobHasPolicyRelationshipSchema());
 
         context.registerService(SchemaRegistry.class, sr);
         monitor.info("Initialized Schema Registry");

@@ -5,6 +5,7 @@
 
 package com.microsoft.dagx.catalog.atlas.metadata;
 
+import com.microsoft.dagx.schema.RelationshipSchema;
 import com.microsoft.dagx.schema.SchemaAttribute;
 import org.apache.atlas.model.instance.AtlasEntity;
 import org.apache.atlas.model.instance.AtlasRelationship;
@@ -34,4 +35,5 @@ public interface AtlasApi {
     void deleteEntities(List<String> entityGuids);
 
 
+    AtlasTypesDef createRelationshipType(String name, String description, int relationshipCategory, RelationshipSchema.EndpointDefinition startDefinition, RelationshipSchema.EndpointDefinition endDefinition);
 }
