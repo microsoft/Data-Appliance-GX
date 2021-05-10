@@ -22,7 +22,7 @@ class DataEntryTest {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerSubtypes(TestExtension.class);
 
-        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id("id").lookup(new TestExtension()).build();
+        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id("id").catalog(new TestExtension()).build();
         StringWriter writer = new StringWriter();
         mapper.writeValue(writer, entry);
 

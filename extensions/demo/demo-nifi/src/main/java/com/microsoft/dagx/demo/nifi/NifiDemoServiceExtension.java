@@ -52,10 +52,10 @@ public class NifiDemoServiceExtension implements ServiceExtension {
         MetadataStore metadataStore = context.getService(MetadataStore.class);
 
         GenericDataCatalog extensions = GenericDataCatalog.Builder.newInstance().property("processGroup", "ee3eb39c-3c08-422a-a5e0-797d33031070").build();
-        DataEntry<DataCatalog> entry1 = DataEntry.Builder.newInstance().id("test123").policyId(USE_EU_POLICY).lookup(extensions).build();
+        DataEntry<DataCatalog> entry1 = DataEntry.Builder.newInstance().id("test123").policyId(USE_EU_POLICY).catalog(extensions).build();
         metadataStore.save(entry1);
 
-        DataEntry<DataCatalog> entry2 = DataEntry.Builder.newInstance().id("test456").policyId(USE_US_OR_EU_POLICY).lookup(extensions).build();
+        DataEntry<DataCatalog> entry2 = DataEntry.Builder.newInstance().id("test456").policyId(USE_US_OR_EU_POLICY).catalog(extensions).build();
         metadataStore.save(entry2);
     }
 

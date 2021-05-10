@@ -44,9 +44,9 @@ public class AtlasApiTest {
 
     @BeforeEach
     void setup() throws IOException {
-        baseUrl = propOrEnv("atlas.rest.address", baseUrl);
-        username = propOrEnv("atlas.account.username", username);
-        password = propOrEnv("atlas.account.password", password);
+        baseUrl = propOrEnv("atlas.url", baseUrl);
+        username = propOrEnv("atlas.username", username);
+        password = propOrEnv("atlas.password", password);
 
         atlasClient = new AtlasClientV2(new String[]{baseUrl}, new String[]{username, password});
         atlasApi = new AtlasApiImpl(atlasClient);
@@ -421,8 +421,8 @@ public class AtlasApiTest {
             assertThat(rel2).isNotNull();
 
             //query the policy, navigate to its associated entities
-            var searchResult = atlasClient.dslSearchWithParams("from Policy", 1, 0);
-            var policyHeader = searchResult.getEntities().get(0);
+            var searchResult = atlasClient.dslSearchWithParams("from Policy", 100, 0);
+            var policyHeader = searchResult.getEntities().stream().filter(header -> header.getDisplayText().equals("TestPolicy")).findFirst().orElseThrow();
             var policy = atlasApi.getEntityById(policyHeader.getGuid());
             assertThat(policy.getRelationshipAttributes()).containsKey("DagxEntity");
 
@@ -432,8 +432,8 @@ public class AtlasApiTest {
 
             //noinspection unchecked
             var relationships = (List<Map<String, Object>>) attributes;
-            assertThat(relationships).hasSize(2);
-            assertThat(relationships).allSatisfy(stringObjectMap -> {
+            assertThat(relationships).describedAs("Policy should have 2 associated entities").hasSize(2);
+            assertThat(relationships).describedAs("The relations should both be active and point to TestEntities").allSatisfy(stringObjectMap -> {
                 assertThat(stringObjectMap.get("relationshipType")).isEqualTo(RELATION_TYPE_NAME);
                 assertThat(stringObjectMap.get("relationshipStatus")).isEqualTo("ACTIVE");
                 assertThat(stringObjectMap.get("typeName")).isEqualTo("TestEntity");

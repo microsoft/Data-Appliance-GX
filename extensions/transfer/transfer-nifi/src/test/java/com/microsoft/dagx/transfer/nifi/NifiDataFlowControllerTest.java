@@ -172,7 +172,7 @@ public class NifiDataFlowControllerTest {
 
         // perform the actual source file properties in Apache Atlas
         var lookup = new AtlasDataCatalog(atlasApi);
-        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).lookup(lookup).build();
+        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(lookup).build();
 
         // connect the "source" (i.e. the lookup) and the "destination"
         DataRequest dataRequest = DataRequest.Builder.newInstance()
@@ -208,7 +208,7 @@ public class NifiDataFlowControllerTest {
     void initiateFlow_withInMemCatalog() throws InterruptedException {
 
         String id = UUID.randomUUID().toString();
-        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).lookup(createLookup()).build();
+        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(createLookup()).build();
 
         DataRequest dataRequest = DataRequest.Builder.newInstance()
                 .id(id)
@@ -243,7 +243,7 @@ public class NifiDataFlowControllerTest {
         lookup.getProperties().replace("blobname", "notexist.png");
         DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance()
                 .id(id)
-                .lookup(lookup)
+                .catalog(lookup)
                 .build();
 
         DataRequest dataRequest = DataRequest.Builder.newInstance()
@@ -270,7 +270,7 @@ public class NifiDataFlowControllerTest {
     @Test
     void initiateFlow_noCredsFoundInVault() {
         String id = UUID.randomUUID().toString();
-        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().lookup(createLookup()).build();
+        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().catalog(createLookup()).build();
 
         DataRequest dataRequest = DataRequest.Builder.newInstance()
                 .id(id)
