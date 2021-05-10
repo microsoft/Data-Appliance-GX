@@ -34,6 +34,5 @@ public interface AtlasApi {
 
     void deleteEntities(List<String> entityGuids);
 
-
     AtlasTypesDef createRelationshipType(String name, String description, int relationshipCategory, RelationshipSchema.EndpointDefinition startDefinition, RelationshipSchema.EndpointDefinition endDefinition);
 }

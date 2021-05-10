@@ -386,6 +386,65 @@ public class AtlasApiTest {
         assertThat(relation.getEnd2().getGuid()).isEqualTo(policyId);
     }
 
+    @Test
+    void queryEntities_byPolicy() throws AtlasServiceException {
+        var entity1 = atlasApi.createEntity("TestEntity", new HashMap<>() {{
+            put("name", "TestEntity1");
+            put("displayName", "File1");
+            put("qualifiedName", "This is just a Test Blob Entity");
+            put("account", "TestAccount");
+            put("someNumber", 42);
+        }});
+        assertThat(entity1).isNotNull().isNotEmpty();
+
+        var entity2 = atlasApi.createEntity("TestEntity", new HashMap<>() {{
+            put("name", "TestEntity1");
+            put("displayName", "File2");
+            put("qualifiedName", "This is just another Test Blob Entity");
+            put("account", "TestAccount");
+            put("someNumber", 69);
+        }});
+
+        var policyId = atlasApi.createEntity("Policy", new HashMap<>() {{
+            put("name", "TestPolicy");
+            put("expression", "foo-bar");
+            put("qualifiedName", "This is a test policy");
+        }});
+
+        var rel1 = atlasApi.createRelation(entity1, policyId, RELATION_TYPE_NAME);
+        var rel2 = atlasApi.createRelation(entity2, policyId, RELATION_TYPE_NAME);
+
+        try {
+            assertThat(entity1).isNotNull().isNotEmpty();
+            assertThat(entity1).isNotNull().isNotEmpty();
+            assertThat(rel1).isNotNull();
+            assertThat(rel2).isNotNull();
+
+            //query the policy, navigate to its associated entities
+            var searchResult = atlasClient.dslSearchWithParams("from Policy", 1, 0);
+            var policyHeader = searchResult.getEntities().get(0);
+            var policy = atlasApi.getEntityById(policyHeader.getGuid());
+            assertThat(policy.getRelationshipAttributes()).containsKey("DagxEntity");
+
+            // get the list of all relations (i.e. relationsip attributes)
+            var attributes = policy.getRelationshipAttribute("DagxEntity");
+            assertThat(attributes).isNotNull().isInstanceOf(List.class);
+
+            //noinspection unchecked
+            var relationships = (List<Map<String, Object>>) attributes;
+            assertThat(relationships).hasSize(2);
+            assertThat(relationships).allSatisfy(stringObjectMap -> {
+                assertThat(stringObjectMap.get("relationshipType")).isEqualTo(RELATION_TYPE_NAME);
+                assertThat(stringObjectMap.get("relationshipStatus")).isEqualTo("ACTIVE");
+                assertThat(stringObjectMap.get("typeName")).isEqualTo("TestEntity");
+            });
+        } finally {
+            System.out.println("Cleaning up entities and policy");
+            atlasClient.deleteEntitiesByGuids(Arrays.asList(entity1, entity2, policyId));
+            atlasClient.purgeEntitiesByGuids(Set.of(entity1, entity2, policyId));
+        }
+    }
+
     @SuppressWarnings({"rawtypes", "unchecked"})
     private List<AtlasTypesDef> createTypesAndRelations() throws IOException {
         List<AtlasTypesDef> result = new ArrayList<>();
@@ -443,7 +502,7 @@ public class AtlasApiTest {
             System.out.print("Error creating types, attempting update: " + e.getMessage());
             try {
                 AtlasTypesDef atlasTypesDef = atlasClient.updateAtlasTypeDefs(typesDef);
-                System.out.println("Update successful!");
+                System.out.println(" --> Update successful!");
                 return atlasTypesDef;
             } catch (AtlasServiceException atlasServiceException) {
                 System.out.println("\nError updating types: " + e.getMessage());
