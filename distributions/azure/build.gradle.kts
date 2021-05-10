@@ -3,9 +3,11 @@
  * All rights reserved.
  */
 
-import com.bmuschko.gradle.docker.tasks.image.*
-import com.bmuschko.gradle.docker.tasks.container.*
-
+import com.bmuschko.gradle.docker.tasks.container.DockerCreateContainer
+import com.bmuschko.gradle.docker.tasks.container.DockerStartContainer
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.image.DockerPushImage
+import com.bmuschko.gradle.docker.tasks.image.Dockerfile
 import java.io.FileInputStream
 import java.util.*
 
@@ -35,8 +37,11 @@ dependencies {
     implementation(project(":extensions:configuration:configuration-fs"))
 
     implementation(project(":extensions:catalog:catalog-atlas"))
-    implementation(project(":extensions:catalog:catalog-dataseed"))
+    implementation(project(":extensions:catalog:catalog-atlas-dataseed"))
     implementation(project(":extensions:transfer:transfer-store-memory"))
+
+    implementation(project(":extensions:policy:policy-registry-memory"))
+
 
     implementation(project(":extensions:schema"))
 
