@@ -351,6 +351,7 @@ public class NifiDataFlowControllerTest {
     }
 
     @Test
+    @Timeout(60)
     void transfer_fromAzureBlob_toS3() throws InterruptedException {
         String id = UUID.randomUUID().toString();
         DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(createAzureCatalogEntry()).build();
@@ -382,6 +383,7 @@ public class NifiDataFlowControllerTest {
     }
 
     @Test
+    @Timeout(60)
     void transfer_fromS3_toAzureBlob() throws InterruptedException {
         String id = UUID.randomUUID().toString();
         DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(createS3CatalogEntry()).build();
