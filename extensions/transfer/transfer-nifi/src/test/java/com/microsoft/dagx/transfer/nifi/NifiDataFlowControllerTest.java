@@ -197,10 +197,10 @@ public class NifiDataFlowControllerTest {
         atlasApi.deleteEntities(Collections.singletonList(id));
 
         // will fail if new blob is not there after 60 seconds
-        while (listBlobs().stream().noneMatch(blob -> blob.getName().equals("bike_very_new.jpg"))) {
-            //noinspection BusyWait
+        while (listBlobs().stream().noneMatch(blob -> blob.getName().equals(id + ".complete"))) {
             Thread.sleep(500);
         }
+        assertThat(listBlobs().stream().anyMatch(bi -> bi.getName().equals("bike_very_new.jpg"))).isTrue();
 
     }
 
