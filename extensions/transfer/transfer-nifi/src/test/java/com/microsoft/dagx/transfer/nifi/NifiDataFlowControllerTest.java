@@ -11,6 +11,10 @@ import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
 import com.azure.storage.blob.models.BlobStorageException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.microsoft.dagx.catalog.atlas.dataseed.AzureBlobFileEntityBuilder;
+import com.microsoft.dagx.catalog.atlas.metadata.AtlasApi;
+import com.microsoft.dagx.catalog.atlas.metadata.AtlasApiImpl;
+import com.microsoft.dagx.catalog.atlas.metadata.AtlasDataCatalog;
 import com.microsoft.dagx.schema.SchemaRegistry;
 import com.microsoft.dagx.schema.SchemaRegistryImpl;
 import com.microsoft.dagx.schema.aws.S3BucketSchema;
@@ -28,6 +32,7 @@ import com.microsoft.dagx.spi.types.domain.transfer.DataAddress;
 import com.microsoft.dagx.spi.types.domain.transfer.DataRequest;
 import com.microsoft.dagx.transfer.nifi.api.NifiApiClient;
 import okhttp3.OkHttpClient;
+import org.apache.atlas.AtlasClientV2;
 import org.easymock.MockType;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -45,10 +50,7 @@ import java.io.File;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 import static com.microsoft.dagx.spi.util.ConfigurationFunctions.propOrEnv;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -59,16 +61,16 @@ import static org.junit.jupiter.api.Assertions.fail;
 @EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 public class NifiDataFlowControllerTest {
 
-    private static final String ATLAS_API_HOST = "http://192.168.2.17:21000";
-    private static final String NIFI_CONTENTLISTENER_HOST = "http://192.168.2.17:8888";
-    private final static String NIFI_API_HOST = "http://192.168.2.17:8080";
+    private static final String ATLAS_API_HOST = "http://localhost:21000";
+    private static final String NIFI_CONTENTLISTENER_HOST = "http://localhost:8888";
+    private final static String NIFI_API_HOST = "http://localhost:8080";
     private final static String storageAccount = "dagxblobstoreitest";
     private final static String atlasUsername = "admin";
     private final static String atlasPassword = "admin";
-    //todo: move this to an env var or repo secret
-    private static final String S3_ACCESS_KEY_ID = "AKIAY2XSTIMWG2HEKF77";
-    private static final String S3_SECRET_ACCES_KEY = "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";
     private static final String S3_BUCKET_NAME = "dagx-itest";
+    //todo: move this to an env var or repo secret
+    private static String s3AccessKeyId;
+    private static String s3SecretAccessKey;
     private static String sharedAccessSignature = null;
     private static String blobName;
     private static OkHttpClient httpClient;
@@ -88,6 +90,15 @@ public class NifiDataFlowControllerTest {
             return;
         }
 
+        s3AccessKeyId = propOrEnv("S3_ACCESS_KEY_ID", null);
+        if (s3AccessKeyId == null) {
+            throw new RuntimeException("S3_ACCESS_KEY_ID cannot be null!");
+        }
+        s3SecretAccessKey = propOrEnv("S3_SECRET_ACCESS_KEY", null);
+        if (s3SecretAccessKey == null) {
+            throw new RuntimeException("S3_SECRET_ACCESS_KEY cannot be null!");
+        }
+
         typeManager = new TypeManager();
         typeManager.getMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
@@ -102,7 +113,7 @@ public class NifiDataFlowControllerTest {
             var templateId = client.uploadTemplate(processGroup, file);
             client.instantiateTemplate(templateId);
             var pg = client.getProcessGroup(processGroup);
-            client.updateVariableRegistry(processGroup, Map.of("s3.accessKeyId", S3_ACCESS_KEY_ID, "s3.secretAccessKey", S3_SECRET_ACCES_KEY), pg.revision);
+            client.updateVariableRegistry(processGroup, Map.of("s3.accessKeyId", s3AccessKeyId, "s3.secretAccessKey", s3SecretAccessKey), pg.revision);
         } catch (DagxException ignored) {
         } finally {
             var controllerService = client.getControllerServices(processGroup).get(0);
@@ -138,16 +149,17 @@ public class NifiDataFlowControllerTest {
         blobClient.uploadFromFile(absolutePath, true);
 
         //prepare bucket, i.e, upload test file to bucket
+
         s3client = S3Client.builder().region(Region.US_EAST_1)
                 .credentialsProvider(StaticCredentialsProvider.create(new AwsCredentials() {
                     @Override
                     public String accessKeyId() {
-                        return S3_ACCESS_KEY_ID;
+                        return s3AccessKeyId;
                     }
 
                     @Override
                     public String secretAccessKey() {
-                        return S3_SECRET_ACCES_KEY;
+                        return s3SecretAccessKey;
                     }
                 })).build();
 
@@ -187,59 +199,59 @@ public class NifiDataFlowControllerTest {
         controller = new NifiDataFlowController(config, typeManager, monitor, vault, httpClient, new NifiTransferEndpointConverter(registry, vault));
     }
 
-//    @Test
-//    @Timeout(value = 60)
-//    void initiateFlow_withAtlasCatalog() throws InterruptedException {
-//
-//        // create custom atlas type and an instance
-//        String id;
-//        var schema = new AzureBlobStoreSchema();
-//        AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{ATLAS_API_HOST}, new String[]{atlasUsername, atlasPassword}));
-//        try {
-//
-//            atlasApi.createCustomTypes(schema.getName(), Set.of("DataSet"), new ArrayList<>(schema.getAttributes()));
-//        } catch (Exception ignored) {
-//        }
-//        id = atlasApi.createEntity(schema.getName(), AzureBlobFileEntityBuilder.newInstance()
-//                .withDescription("This is a test description")
-//                .withAccount(storageAccount)
-//                .withContainer(containerName)
-//                .withBlobname(blobName)
-//                .withKeyName(storageAccount + "-key1")
-//                .build());
-//
-//        // perform the actual source file properties in Apache Atlas
-//        var lookup = new AtlasDataCatalog(atlasApi);
-//        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(lookup).build();
-//
-//        // connect the "source" (i.e. the lookup) and the "destination"
-//        DataRequest dataRequest = DataRequest.Builder.newInstance()
-//                .id(id)
-//                .dataEntry(entry)
-//                .dataDestination(DataAddress.Builder.newInstance()
-//                        .type("AzureStorage")
-//                        .property("account", storageAccount)
-//                        .property("container", containerName)
-//                        .property("blobname", "bike_very_new.jpg")
-//                        .keyName(storageAccount + "-key1")
-//                        .build())
-//                .build();
-//
-//        //act
-//        DataFlowInitiateResponse response = controller.initiateFlow(dataRequest);
-//
-//        //assert
-//        assertEquals(ResponseStatus.OK, response.getStatus());
-//
-//        atlasApi.deleteEntities(Collections.singletonList(id));
-//
-//        // will fail if new blob is not there after 60 seconds
-//        while (listBlobs().stream().noneMatch(blob -> blob.getName().equals(id + ".complete"))) {
-//            Thread.sleep(500);
-//        }
-//        assertThat(listBlobs().stream().anyMatch(bi -> bi.getName().equals("bike_very_new.jpg"))).isTrue();
-//
-//    }
+    @Test
+    @Timeout(value = 60)
+    void initiateFlow_withAtlasCatalog() throws InterruptedException {
+
+        // create custom atlas type and an instance
+        String id;
+        var schema = new AzureBlobStoreSchema();
+        AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{ATLAS_API_HOST}, new String[]{atlasUsername, atlasPassword}));
+        try {
+
+            atlasApi.createCustomTypes(schema.getName(), Set.of("DataSet"), new ArrayList<>(schema.getAttributes()));
+        } catch (Exception ignored) {
+        }
+        id = atlasApi.createEntity(schema.getName(), AzureBlobFileEntityBuilder.newInstance()
+                .withDescription("This is a test description")
+                .withAccount(storageAccount)
+                .withContainer(containerName)
+                .withBlobname(blobName)
+                .withKeyName(storageAccount + "-key1")
+                .build());
+
+        // perform the actual source file properties in Apache Atlas
+        var lookup = new AtlasDataCatalog(atlasApi);
+        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(lookup).build();
+
+        // connect the "source" (i.e. the lookup) and the "destination"
+        DataRequest dataRequest = DataRequest.Builder.newInstance()
+                .id(id)
+                .dataEntry(entry)
+                .dataDestination(DataAddress.Builder.newInstance()
+                        .type("AzureStorage")
+                        .property("account", storageAccount)
+                        .property("container", containerName)
+                        .property("blobname", "bike_very_new.jpg")
+                        .keyName(storageAccount + "-key1")
+                        .build())
+                .build();
+
+        //act
+        DataFlowInitiateResponse response = controller.initiateFlow(dataRequest);
+
+        //assert
+        assertEquals(ResponseStatus.OK, response.getStatus());
+
+        atlasApi.deleteEntities(Collections.singletonList(id));
+
+        // will fail if new blob is not there after 60 seconds
+        while (listBlobs().stream().noneMatch(blob -> blob.getName().equals(id + ".complete"))) {
+            Thread.sleep(500);
+        }
+        assertThat(listBlobs().stream().anyMatch(bi -> bi.getName().equals("bike_very_new.jpg"))).isTrue();
+
+    }
 
     @Test
     @Timeout(value = 10)
