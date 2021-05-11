@@ -746,14 +746,14 @@
                     </entry>
                     <entry>
                         <key>storage-account-name</key>
-                        <value>${HttpBody:jsonPath('$.source.account')}</value>
+                        <value>${HttpBody:jsonPath('$.destination.account')}</value>
                     </entry>
                     <entry>
                         <key>storage-account-key</key>
                     </entry>
                     <entry>
                         <key>storage-sas-token</key>
-                        <value>${HttpBody:jsonPath('$.source.sas')}</value>
+                        <value>${HttpBody:jsonPath('$.destination.sas')}</value>
                     </entry>
                     <entry>
                         <key>storage-endpoint-suffix</key>
@@ -876,14 +876,14 @@
                     </entry>
                     <entry>
                         <key>storage-account-name</key>
-                        <value>${HttpBody:jsonPath('$.source.account')}</value>
+                        <value>${HttpBody:jsonPath('$.destination.account')}</value>
                     </entry>
                     <entry>
                         <key>storage-account-key</key>
                     </entry>
                     <entry>
                         <key>storage-sas-token</key>
-                        <value>${HttpBody:jsonPath('$.source.sas')}</value>
+                        <value>${HttpBody:jsonPath('$.destination.sas')}</value>
                     </entry>
                     <entry>
                         <key>storage-endpoint-suffix</key>
@@ -1006,14 +1006,14 @@
                     </entry>
                     <entry>
                         <key>storage-account-name</key>
-                        <value>${HttpBody:jsonPath('$.source.account')}</value>
+                        <value>${HttpBody:jsonPath('$.destination.account')}</value>
                     </entry>
                     <entry>
                         <key>storage-account-key</key>
                     </entry>
                     <entry>
                         <key>storage-sas-token</key>
-                        <value>${HttpBody:jsonPath('$.source.sas')}</value>
+                        <value>${HttpBody:jsonPath('$.destination.sas')}</value>
                     </entry>
                     <entry>
                         <key>storage-endpoint-suffix</key>
@@ -1951,14 +1951,14 @@
                     </entry>
                     <entry>
                         <key>storage-account-name</key>
-                        <value>${HttpBody:jsonPath('$.source.account')}</value>
+                        <value>${HttpBody:jsonPath('$.destination.account')}</value>
                     </entry>
                     <entry>
                         <key>storage-account-key</key>
                     </entry>
                     <entry>
                         <key>storage-sas-token</key>
-                        <value>${HttpBody:jsonPath('$.source.sas')}</value>
+                        <value>${HttpBody:jsonPath('$.destination.sas')}</value>
                     </entry>
                     <entry>
                         <key>storage-endpoint-suffix</key>
