@@ -61,7 +61,6 @@ public class NifiDataFlowControllerTest {
     private static OkHttpClient httpClient;
     private static TypeManager typeManager;
     private static String containerName;
-    private static NifiApiClient client;
     private static BlobContainerClient blobContainerClient;
     private NifiDataFlowController controller;
     private Vault vault;
@@ -83,7 +82,7 @@ public class NifiDataFlowControllerTest {
 
         var f = Thread.currentThread().getContextClassLoader().getResource("TwoClouds.xml");
         var file = new File(Objects.requireNonNull(f).toURI());
-        client = new NifiApiClient(NIFI_API_HOST, typeManager, httpClient);
+        NifiApiClient client = new NifiApiClient(NIFI_API_HOST, typeManager, httpClient);
         String processGroup = "root";
         try {
             var templateId = client.uploadTemplate(processGroup, file);
@@ -102,7 +101,7 @@ public class NifiDataFlowControllerTest {
 
         sharedAccessSignature = propOrEnv("AZ_STORAGE_SAS", null);
         if (sharedAccessSignature == null) {
-            throw new RuntimeException("No environment variable found AZ_STORAGE_KEY!");
+            throw new RuntimeException("No environment variable found AZ_STORAGE_SAS!");
         }
 
         try {
