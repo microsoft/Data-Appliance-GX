@@ -41,10 +41,7 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
-import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.model.PutObjectResponse;
-import software.amazon.awssdk.services.s3.model.S3Object;
+import software.amazon.awssdk.services.s3.model.*;
 
 import java.io.File;
 import java.net.URL;
@@ -67,7 +64,7 @@ public class NifiDataFlowControllerTest {
     private final static String storageAccount = "dagxblobstoreitest";
     private final static String atlasUsername = "admin";
     private final static String atlasPassword = "admin";
-    private static final String S3_BUCKET_NAME = "dagx-itest";
+    private static String s3BucketName = "dagx-itest";
     //todo: move this to an env var or repo secret
     private static String s3AccessKeyId;
     private static String s3SecretAccessKey;
@@ -150,6 +147,7 @@ public class NifiDataFlowControllerTest {
 
         //prepare bucket, i.e, upload test file to bucket
 
+        s3BucketName += UUID.randomUUID().toString();
         s3client = S3Client.builder().region(Region.US_EAST_1)
                 .credentialsProvider(StaticCredentialsProvider.create(new AwsCredentials() {
                     @Override
@@ -162,10 +160,11 @@ public class NifiDataFlowControllerTest {
                         return s3SecretAccessKey;
                     }
                 })).build();
+        s3client.createBucket(CreateBucketRequest.builder().bucket(s3BucketName).build());
 
         Path of = Path.of(testImageStream.toURI());
         RequestBody requestBody = RequestBody.fromFile(of);
-        PutObjectResponse putObjectResponse = s3client.putObject(PutObjectRequest.builder().bucket(S3_BUCKET_NAME).key(blobName).build(), requestBody);
+        PutObjectResponse putObjectResponse = s3client.putObject(PutObjectRequest.builder().bucket(s3BucketName).key(blobName).build(), requestBody);
         String s = putObjectResponse.eTag();
 
     }
@@ -173,6 +172,19 @@ public class NifiDataFlowControllerTest {
     @AfterAll
     public static void winddown() {
         blobContainerClient.delete();
+
+        var objects = listS3BucketContents();
+        for (var obj : objects) {
+            s3client.deleteObject(DeleteObjectRequest.builder().bucket(s3BucketName).key(obj.key()).build());
+        }
+        s3client.deleteBucket(DeleteBucketRequest.builder().bucket(s3BucketName).build());
+    }
+
+    private static List<S3Object> listS3BucketContents() {
+        return s3client.listObjectsV2(ListObjectsV2Request.builder()
+                .bucket(s3BucketName)
+                .build())
+                .contents();
     }
 
     @BeforeEach
@@ -349,7 +361,7 @@ public class NifiDataFlowControllerTest {
                 .dataDestination(DataAddress.Builder.newInstance()
                         .type("AmazonS3")
                         .property("region", "us-east-1")
-                        .property("bucketName", S3_BUCKET_NAME)
+                        .property("bucketName", s3BucketName)
                         .property("objectName", "bike_very_new.jpg")
                         .property("keyName", storageAccount + "-key1")
                         .build())
@@ -363,17 +375,10 @@ public class NifiDataFlowControllerTest {
 
 
         // will fail if new blob is not there after 10 seconds
-        while (listS3Bucket().stream().noneMatch(blob -> blob.key().equals(id + ".complete"))) {
+        while (listS3BucketContents().stream().noneMatch(blob -> blob.key().equals(id + ".complete"))) {
             Thread.sleep(500);
         }
-        assertThat(listS3Bucket().stream().anyMatch(bi -> bi.key().equals("bike_very_new.jpg"))).isTrue();
-    }
-
-    private List<S3Object> listS3Bucket() {
-        return s3client.listObjectsV2(ListObjectsV2Request.builder()
-                .bucket(NifiDataFlowControllerTest.S3_BUCKET_NAME)
-                .build())
-                .contents();
+        assertThat(listS3BucketContents().stream().anyMatch(bi -> bi.key().equals("bike_very_new.jpg"))).isTrue();
     }
 
     @Test
@@ -418,12 +423,11 @@ public class NifiDataFlowControllerTest {
 
     }
 
-
     private GenericDataCatalog createS3CatalogEntry() {
         return GenericDataCatalog.Builder.newInstance()
                 .property("type", "AmazonS3")
                 .property("region", "us-east-1")
-                .property("bucketName", S3_BUCKET_NAME)
+                .property("bucketName", s3BucketName)
                 .property("objectName", blobName)
                 .property("keyName", storageAccount + "-key1")
                 .build();
