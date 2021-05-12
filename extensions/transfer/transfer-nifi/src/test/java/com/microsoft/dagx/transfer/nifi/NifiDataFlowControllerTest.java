@@ -6,7 +6,7 @@
 package com.microsoft.dagx.transfer.nifi;
 
 import com.azure.core.http.rest.PagedIterable;
-import com.azure.core.util.Context;
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
@@ -47,7 +47,6 @@ import java.io.File;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
 import java.util.*;
 
 import static com.microsoft.dagx.spi.util.ConfigurationFunctions.propOrEnv;
@@ -169,7 +168,7 @@ public class NifiDataFlowControllerTest {
 
 
         // create azure storage container
-        containerName = "nifi-itest-" + UUID.randomUUID();
+        containerName = "dagx-itest";
 
         sharedAccessSignature = propOrEnv("AZ_STORAGE_SAS", null);
         if (sharedAccessSignature == null) {
@@ -183,10 +182,10 @@ public class NifiDataFlowControllerTest {
                 .buildClient();
 
         blobContainerClient = bsc.getBlobContainerClient(containerName);
-        System.out.println("prepare - create container " + containerName);
+        System.out.println("prepare - container exists: " + blobContainerClient.exists());
 
-        var response = blobContainerClient.createWithResponse(null, null, Duration.ofMillis(20_000), Context.NONE);
-        response.getValue();
+//        var response = blobContainerClient.createWithResponse(null, null, Duration.ofMillis(20_000), Context.NONE);
+//        response.getValue();
         // upload blob to storage
 
         System.out.println("prepare - upload test file to blob store");
@@ -200,8 +199,17 @@ public class NifiDataFlowControllerTest {
 
     @AfterAll
     public static void winddown() {
-        System.out.println("winddown - delete blob");
-        blobContainerClient.delete();
+        System.out.println("winddown - clean blobs");
+
+        for (BlobItem blob : blobContainerClient.listBlobs()) {
+            final BlobClient blobClient = blobContainerClient.getBlobClient(blob.getName());
+            if (blobClient.exists()) {
+                System.out.println("  delete blob item " + blob.getName());
+                blobClient.delete();
+            } else {
+                break;
+            }
+        }
 
         System.out.println("winddown - clean bucket");
         var objects = listS3BucketContents();
