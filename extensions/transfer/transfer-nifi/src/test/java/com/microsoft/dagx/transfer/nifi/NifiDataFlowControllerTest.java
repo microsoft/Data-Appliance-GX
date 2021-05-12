@@ -6,6 +6,7 @@
 package com.microsoft.dagx.transfer.nifi;
 
 import com.azure.core.http.rest.PagedIterable;
+import com.azure.core.util.Context;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
@@ -47,6 +48,7 @@ import java.io.File;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.util.*;
 
 import static com.microsoft.dagx.spi.util.ConfigurationFunctions.propOrEnv;
@@ -149,12 +151,17 @@ public class NifiDataFlowControllerTest {
         try {
 
             var connectionString = "BlobEndpoint=https://" + storageAccount + ".blob.core.windows.net/;SharedAccessSignature=" + sharedAccessSignature;
-            System.out.println("prepare - create blob container");
+            System.out.println("prepare - consgtruct blobservice client");
 
             var bsc = new BlobServiceClientBuilder().connectionString(connectionString)
                     .buildClient();
 
-            blobContainerClient = bsc.createBlobContainer(containerName);
+            blobContainerClient = bsc.getBlobContainerClient(containerName);
+            System.out.println("prepare - create container " + containerName + " with response using " + connectionString);
+
+            var response = blobContainerClient.createWithResponse(null, null, Duration.ofMillis(20_000), Context.NONE);
+            response.getValue();
+//            blobContainerClient = bsc.createBlobContainer(containerName);
         } catch (BlobStorageException ex) {
             fail("Error initializing the Azure Blob Storage: ", ex);
         }
