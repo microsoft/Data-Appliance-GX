@@ -32,9 +32,9 @@ dependencies {
         }
     }
 
-    testImplementation("com.azure:azure-storage-blob:12.6.0")
-    implementation(platform("software.amazon.awssdk:bom:${awsVersion}"))
-    implementation("software.amazon.awssdk:s3")
+    testImplementation("com.azure:azure-storage-blob:12.11.0")
+    testImplementation(platform("software.amazon.awssdk:bom:${awsVersion}"))
+    testImplementation("software.amazon.awssdk:s3")
 }
 
 

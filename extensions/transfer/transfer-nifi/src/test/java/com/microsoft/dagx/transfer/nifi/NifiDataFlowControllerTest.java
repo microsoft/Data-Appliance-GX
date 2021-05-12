@@ -175,12 +175,13 @@ public class NifiDataFlowControllerTest {
             throw new RuntimeException("No environment variable found AZ_STORAGE_SAS!");
         }
 
-        System.out.println("prepare - consgtruct blobservice client");
+        System.out.println("prepare - construct blobservice client");
 
         var bsc = new BlobServiceClientBuilder().sasToken(sharedAccessSignature)
                 .endpoint("https://" + storageAccount + ".blob.core.windows.net")
                 .buildClient();
 
+        System.out.println("prepare - construct blob container client client");
         blobContainerClient = bsc.getBlobContainerClient(containerName);
         System.out.println("prepare - container exists: " + blobContainerClient.exists());
 
