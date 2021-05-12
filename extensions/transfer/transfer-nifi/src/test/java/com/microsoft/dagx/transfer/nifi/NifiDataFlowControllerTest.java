@@ -81,6 +81,8 @@ public class NifiDataFlowControllerTest {
     @BeforeAll
     public static void prepare() throws Exception {
 
+        System.out.println("prepare");
+
 //         this is necessary because the @EnabledIf... annotation does not prevent @BeforeAll to be called
         var isCi = propOrEnv("CI", "false");
         if (!Boolean.parseBoolean(isCi)) {
@@ -177,12 +179,16 @@ public class NifiDataFlowControllerTest {
 
     @AfterAll
     public static void winddown() {
+        System.out.println("winddown - delete blob");
         blobContainerClient.delete();
 
+        System.out.println("winddown - clean bucket");
         var objects = listS3BucketContents();
         for (var obj : objects) {
+            System.out.println("  Delete Bucket object " + obj.key());
             s3client.deleteObject(DeleteObjectRequest.builder().bucket(s3BucketName).key(obj.key()).build());
         }
+        System.out.println("winddown - delete bucket");
         s3client.deleteBucket(DeleteBucketRequest.builder().bucket(s3BucketName).build());
     }
 
@@ -195,6 +201,8 @@ public class NifiDataFlowControllerTest {
 
     @BeforeEach
     void setUp() {
+
+        System.out.println("setup test");
 
         Monitor monitor = new Monitor() {
         };
@@ -219,8 +227,10 @@ public class NifiDataFlowControllerTest {
 
     @Test
     @Timeout(value = 60)
+    @DisplayName("transfer with Atlas catalog")
     void initiateFlow_withAtlasCatalog() throws InterruptedException {
 
+        System.out.println("transfer with Atlas catalog");
         // create custom atlas type and an instance
         String id;
         var schema = new AzureBlobStoreSchema();
@@ -273,7 +283,9 @@ public class NifiDataFlowControllerTest {
 
     @Test
     @Timeout(value = 10)
+    @DisplayName("transfer with In-Mem catalog")
     void initiateFlow_withInMemCatalog() throws InterruptedException {
+        System.out.println("transfer with In-Mem catalog");
 
         String id = UUID.randomUUID().toString();
         DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(createAzureCatalogEntry()).build();
@@ -306,7 +318,9 @@ public class NifiDataFlowControllerTest {
     }
 
     @Test
+    @DisplayName("Don't transfer if source not found")
     void initiateFlow_sourceNotFound() {
+        System.out.println("Don't transfer if source not found");
         String id = UUID.randomUUID().toString();
         GenericDataCatalog lookup = createAzureCatalogEntry();
         lookup.getProperties().replace("blobname", "notexist.png");
@@ -336,7 +350,9 @@ public class NifiDataFlowControllerTest {
     }
 
     @Test
+    @DisplayName("Don't transfer if no creds are found in vault")
     void initiateFlow_noCredsFoundInVault() {
+        System.out.println("Don't transfer if no creds are found in vault");
         String id = UUID.randomUUID().toString();
         DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().catalog(createAzureCatalogEntry()).build();
 
@@ -358,7 +374,9 @@ public class NifiDataFlowControllerTest {
 
     @Test
     @Timeout(60)
+    @DisplayName("transfer from Azure Blob to S3")
     void transfer_fromAzureBlob_toS3() throws InterruptedException {
+        System.out.println("transfer from Azure Blob to S3");
         String id = UUID.randomUUID().toString();
         DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(createAzureCatalogEntry()).build();
 
@@ -390,7 +408,9 @@ public class NifiDataFlowControllerTest {
 
     @Test
     @Timeout(60)
+    @DisplayName("transfer from S3 to Azure Blob")
     void transfer_fromS3_toAzureBlob() throws InterruptedException {
+        System.out.println("transfer from S3 to Azure Blob");
         String id = UUID.randomUUID().toString();
         DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(createS3CatalogEntry()).build();
 
