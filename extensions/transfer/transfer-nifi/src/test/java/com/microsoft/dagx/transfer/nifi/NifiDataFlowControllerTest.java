@@ -147,7 +147,10 @@ public class NifiDataFlowControllerTest {
         }
 
         try {
+
             var connectionString = "BlobEndpoint=https://" + storageAccount + ".blob.core.windows.net/;SharedAccessSignature=" + sharedAccessSignature;
+            System.out.println("prepare - create blob container");
+
             var bsc = new BlobServiceClientBuilder().connectionString(connectionString)
                     .buildClient();
 
@@ -157,12 +160,15 @@ public class NifiDataFlowControllerTest {
         }
         // upload blob to storage
         blobName = "testimage.jpg";
+        System.out.println("prepare - upload test file to blob store");
+
         var blobClient = blobContainerClient.getBlobClient(blobName);
         URL testImageStream = Thread.currentThread().getContextClassLoader().getResource(blobName);
         String absolutePath = Objects.requireNonNull(Paths.get(testImageStream.toURI())).toString();
         blobClient.uploadFromFile(absolutePath, true);
 
         //prepare bucket, i.e, upload test file to bucket
+        System.out.println("prepare - create S3 bucket");
 
         s3BucketName += UUID.randomUUID().toString();
         s3client = S3Client.builder().region(Region.US_EAST_1)
@@ -179,10 +185,14 @@ public class NifiDataFlowControllerTest {
                 })).build();
         s3client.createBucket(CreateBucketRequest.builder().bucket(s3BucketName).build());
 
+        System.out.println("prepare - upload image to S3 bucket");
+
         Path of = Path.of(testImageStream.toURI());
         RequestBody requestBody = RequestBody.fromFile(of);
         PutObjectResponse putObjectResponse = s3client.putObject(PutObjectRequest.builder().bucket(s3BucketName).key(blobName).build(), requestBody);
         String s = putObjectResponse.eTag();
+
+        System.out.println("prepare - done");
 
     }
 
