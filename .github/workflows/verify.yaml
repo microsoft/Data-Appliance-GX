@@ -3,7 +3,7 @@ name: Build/Test
 on: [ push ]
 
 jobs:
-  test:
+  gradle-test:
     runs-on: ubuntu-latest
 
     services:
