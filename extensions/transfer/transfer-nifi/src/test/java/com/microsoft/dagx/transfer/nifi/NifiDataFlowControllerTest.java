@@ -58,12 +58,12 @@ import static org.junit.jupiter.api.Assertions.fail;
 @EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 public class NifiDataFlowControllerTest {
 
-    private static final String ATLAS_API_HOST = "http://localhost:21000";
-    private static final String NIFI_CONTENTLISTENER_HOST = "http://localhost:8888";
-    private final static String NIFI_API_HOST = "http://localhost:8080";
+    private static final String DEFAULT_NIFI_HOST = "http://localhost";
     private final static String storageAccount = "dagxblobstoreitest";
     private final static String atlasUsername = "admin";
     private final static String atlasPassword = "admin";
+    private static String atlasApiUrl;
+    private static String nifiContentlistenerHost;
     private static String s3BucketName = "dagx-itest";
     //todo: move this to an env var or repo secret
     private static String s3AccessKeyId;
@@ -87,6 +87,12 @@ public class NifiDataFlowControllerTest {
             return;
         }
 
+        var host = propOrEnv("NIFI_URL", DEFAULT_NIFI_HOST);
+
+        String nifiApiHost = host + ":8080";
+        nifiContentlistenerHost = host + ":8888";
+        atlasApiUrl = propOrEnv("ATLAS_URL", "http://localhost:21000");
+
         s3AccessKeyId = propOrEnv("S3_ACCESS_KEY_ID", null);
         if (s3AccessKeyId == null) {
             throw new RuntimeException("S3_ACCESS_KEY_ID cannot be null!");
@@ -103,7 +109,7 @@ public class NifiDataFlowControllerTest {
 
         var f = Thread.currentThread().getContextClassLoader().getResource("TwoClouds.xml");
         var file = new File(Objects.requireNonNull(f).toURI());
-        NifiApiClient client = new NifiApiClient(NIFI_API_HOST, typeManager, httpClient);
+        NifiApiClient client = new NifiApiClient(nifiApiHost, typeManager, httpClient);
         String processGroup = "root";
 
         try {
@@ -192,7 +198,7 @@ public class NifiDataFlowControllerTest {
 
         Monitor monitor = new Monitor() {
         };
-        NifiTransferManagerConfiguration config = NifiTransferManagerConfiguration.Builder.newInstance().url(NIFI_CONTENTLISTENER_HOST)
+        NifiTransferManagerConfiguration config = NifiTransferManagerConfiguration.Builder.newInstance().url(nifiContentlistenerHost)
                 .build();
         typeManager.registerTypes(DataRequest.class);
 
@@ -218,7 +224,7 @@ public class NifiDataFlowControllerTest {
         // create custom atlas type and an instance
         String id;
         var schema = new AzureBlobStoreSchema();
-        AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{ATLAS_API_HOST}, new String[]{atlasUsername, atlasPassword}));
+        AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{atlasApiUrl}, new String[]{atlasUsername, atlasPassword}));
         try {
 
             atlasApi.createCustomTypes(schema.getName(), Set.of("DataSet"), new ArrayList<>(schema.getAttributes()));
