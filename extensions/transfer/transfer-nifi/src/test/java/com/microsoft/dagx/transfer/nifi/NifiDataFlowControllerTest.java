@@ -10,7 +10,6 @@ import com.azure.core.util.Context;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
-import com.azure.storage.blob.models.BlobStorageException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.microsoft.dagx.catalog.atlas.dataseed.AzureBlobFileEntityBuilder;
 import com.microsoft.dagx.catalog.atlas.metadata.AtlasApi;
@@ -55,7 +54,6 @@ import static com.microsoft.dagx.spi.util.ConfigurationFunctions.propOrEnv;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.easymock.EasyMock.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.fail;
 
 @EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 public class NifiDataFlowControllerTest {
@@ -140,39 +138,9 @@ public class NifiDataFlowControllerTest {
 
         }
 
-        // create azure storage container
-        containerName = "nifi-itest-" + UUID.randomUUID();
 
-        sharedAccessSignature = propOrEnv("AZ_STORAGE_SAS", null);
-        if (sharedAccessSignature == null) {
-            throw new RuntimeException("No environment variable found AZ_STORAGE_SAS!");
-        }
-
-        try {
-
-            var connectionString = "BlobEndpoint=https://" + storageAccount + ".blob.core.windows.net/;SharedAccessSignature=" + sharedAccessSignature;
-            System.out.println("prepare - consgtruct blobservice client");
-
-            var bsc = new BlobServiceClientBuilder().connectionString(connectionString)
-                    .buildClient();
-
-            blobContainerClient = bsc.getBlobContainerClient(containerName);
-            System.out.println("prepare - create container " + containerName + " with response using " + connectionString);
-
-            var response = blobContainerClient.createWithResponse(null, null, Duration.ofMillis(20_000), Context.NONE);
-            response.getValue();
-//            blobContainerClient = bsc.createBlobContainer(containerName);
-        } catch (BlobStorageException ex) {
-            fail("Error initializing the Azure Blob Storage: ", ex);
-        }
-        // upload blob to storage
-        blobName = "testimage.jpg";
-        System.out.println("prepare - upload test file to blob store");
-
-        var blobClient = blobContainerClient.getBlobClient(blobName);
         URL testImageStream = Thread.currentThread().getContextClassLoader().getResource(blobName);
         String absolutePath = Objects.requireNonNull(Paths.get(testImageStream.toURI())).toString();
-        blobClient.uploadFromFile(absolutePath, true);
 
         //prepare bucket, i.e, upload test file to bucket
         System.out.println("prepare - create S3 bucket");
@@ -198,6 +166,33 @@ public class NifiDataFlowControllerTest {
         RequestBody requestBody = RequestBody.fromFile(of);
         PutObjectResponse putObjectResponse = s3client.putObject(PutObjectRequest.builder().bucket(s3BucketName).key(blobName).build(), requestBody);
         String s = putObjectResponse.eTag();
+
+
+        // create azure storage container
+        containerName = "nifi-itest-" + UUID.randomUUID();
+
+        sharedAccessSignature = propOrEnv("AZ_STORAGE_SAS", null);
+        if (sharedAccessSignature == null) {
+            throw new RuntimeException("No environment variable found AZ_STORAGE_SAS!");
+        }
+
+        System.out.println("prepare - consgtruct blobservice client");
+
+        var bsc = new BlobServiceClientBuilder().sasToken(sharedAccessSignature)
+                .endpoint("https://" + storageAccount + ".blob.core.windows.net")
+                .buildClient();
+
+        blobContainerClient = bsc.getBlobContainerClient(containerName);
+        System.out.println("prepare - create container " + containerName);
+
+        var response = blobContainerClient.createWithResponse(null, null, Duration.ofMillis(20_000), Context.NONE);
+        response.getValue();
+        // upload blob to storage
+        blobName = "testimage.jpg";
+        System.out.println("prepare - upload test file to blob store");
+
+        var blobClient = blobContainerClient.getBlobClient(blobName);
+        blobClient.uploadFromFile(absolutePath, true);
 
         System.out.println("prepare - done");
 
@@ -228,7 +223,7 @@ public class NifiDataFlowControllerTest {
     @BeforeEach
     void setUp() {
 
-        System.out.println("setup test");
+        System.out.println("");
 
         Monitor monitor = new Monitor() {
         };
@@ -256,7 +251,6 @@ public class NifiDataFlowControllerTest {
     @DisplayName("transfer with Atlas catalog")
     void initiateFlow_withAtlasCatalog() throws InterruptedException {
 
-        System.out.println("transfer with Atlas catalog");
         // create custom atlas type and an instance
         String id;
         var schema = new AzureBlobStoreSchema();
@@ -311,7 +305,6 @@ public class NifiDataFlowControllerTest {
     @Timeout(value = 10)
     @DisplayName("transfer with In-Mem catalog")
     void initiateFlow_withInMemCatalog() throws InterruptedException {
-        System.out.println("transfer with In-Mem catalog");
 
         String id = UUID.randomUUID().toString();
         DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(createAzureCatalogEntry()).build();
@@ -346,7 +339,6 @@ public class NifiDataFlowControllerTest {
     @Test
     @DisplayName("Don't transfer if source not found")
     void initiateFlow_sourceNotFound() {
-        System.out.println("Don't transfer if source not found");
         String id = UUID.randomUUID().toString();
         GenericDataCatalog lookup = createAzureCatalogEntry();
         lookup.getProperties().replace("blobname", "notexist.png");
@@ -378,7 +370,6 @@ public class NifiDataFlowControllerTest {
     @Test
     @DisplayName("Don't transfer if no creds are found in vault")
     void initiateFlow_noCredsFoundInVault() {
-        System.out.println("Don't transfer if no creds are found in vault");
         String id = UUID.randomUUID().toString();
         DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().catalog(createAzureCatalogEntry()).build();
 
@@ -402,7 +393,6 @@ public class NifiDataFlowControllerTest {
     @Timeout(60)
     @DisplayName("transfer from Azure Blob to S3")
     void transfer_fromAzureBlob_toS3() throws InterruptedException {
-        System.out.println("transfer from Azure Blob to S3");
         String id = UUID.randomUUID().toString();
         DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(createAzureCatalogEntry()).build();
 
@@ -436,7 +426,6 @@ public class NifiDataFlowControllerTest {
     @Timeout(60)
     @DisplayName("transfer from S3 to Azure Blob")
     void transfer_fromS3_toAzureBlob() throws InterruptedException {
-        System.out.println("transfer from S3 to Azure Blob");
         String id = UUID.randomUUID().toString();
         DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(createS3CatalogEntry()).build();
 
