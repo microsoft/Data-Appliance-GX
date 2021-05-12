@@ -11,10 +11,6 @@ import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
 import com.azure.storage.blob.models.BlobItem;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.microsoft.dagx.catalog.atlas.dataseed.AzureBlobFileEntityBuilder;
-import com.microsoft.dagx.catalog.atlas.metadata.AtlasApi;
-import com.microsoft.dagx.catalog.atlas.metadata.AtlasApiImpl;
-import com.microsoft.dagx.catalog.atlas.metadata.AtlasDataCatalog;
 import com.microsoft.dagx.schema.SchemaRegistry;
 import com.microsoft.dagx.schema.SchemaRegistryImpl;
 import com.microsoft.dagx.schema.aws.S3BucketSchema;
@@ -32,7 +28,6 @@ import com.microsoft.dagx.spi.types.domain.transfer.DataAddress;
 import com.microsoft.dagx.spi.types.domain.transfer.DataRequest;
 import com.microsoft.dagx.transfer.nifi.api.NifiApiClient;
 import okhttp3.OkHttpClient;
-import org.apache.atlas.AtlasClientV2;
 import org.easymock.MockType;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
@@ -47,7 +42,10 @@ import java.io.File;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
 
 import static com.microsoft.dagx.spi.util.ConfigurationFunctions.propOrEnv;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -255,60 +253,60 @@ public class NifiDataFlowControllerTest {
         controller = new NifiDataFlowController(config, typeManager, monitor, vault, httpClient, new NifiTransferEndpointConverter(registry, vault));
     }
 
-    @Test
-    @Timeout(value = 60)
-    @DisplayName("transfer with Atlas catalog")
-    void initiateFlow_withAtlasCatalog() throws InterruptedException {
-
-        // create custom atlas type and an instance
-        String id;
-        var schema = new AzureBlobStoreSchema();
-        AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{atlasApiUrl}, new String[]{atlasUsername, atlasPassword}));
-        try {
-
-            atlasApi.createCustomTypes(schema.getName(), Set.of("DataSet"), new ArrayList<>(schema.getAttributes()));
-        } catch (Exception ignored) {
-        }
-        id = atlasApi.createEntity(schema.getName(), AzureBlobFileEntityBuilder.newInstance()
-                .withDescription("This is a test description")
-                .withAccount(storageAccount)
-                .withContainer(containerName)
-                .withBlobname(blobName)
-                .withKeyName(storageAccount + "-key1")
-                .build());
-
-        // perform the actual source file properties in Apache Atlas
-        var lookup = new AtlasDataCatalog(atlasApi);
-        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(lookup).build();
-
-        // connect the "source" (i.e. the lookup) and the "destination"
-        DataRequest dataRequest = DataRequest.Builder.newInstance()
-                .id(id)
-                .dataEntry(entry)
-                .dataDestination(DataAddress.Builder.newInstance()
-                        .type("AzureStorage")
-                        .property("account", storageAccount)
-                        .property("container", containerName)
-                        .property("blobname", "bike_very_new.jpg")
-                        .keyName(storageAccount + "-key1")
-                        .build())
-                .build();
-
-        //act
-        DataFlowInitiateResponse response = controller.initiateFlow(dataRequest);
-
-        //assert
-        assertEquals(ResponseStatus.OK, response.getStatus());
-
-        atlasApi.deleteEntities(Collections.singletonList(id));
-
-        // will fail if new blob is not there after 60 seconds
-        while (listBlobs().stream().noneMatch(blob -> blob.getName().equals(id + ".complete"))) {
-            Thread.sleep(500);
-        }
-        assertThat(listBlobs().stream().anyMatch(bi -> bi.getName().equals("bike_very_new.jpg"))).isTrue();
-
-    }
+//    @Test
+//    @Timeout(value = 60)
+//    @DisplayName("transfer with Atlas catalog")
+//    void initiateFlow_withAtlasCatalog() throws InterruptedException {
+//
+//        // create custom atlas type and an instance
+//        String id;
+//        var schema = new AzureBlobStoreSchema();
+//        AtlasApi atlasApi = new AtlasApiImpl(new AtlasClientV2(new String[]{atlasApiUrl}, new String[]{atlasUsername, atlasPassword}));
+//        try {
+//
+//            atlasApi.createCustomTypes(schema.getName(), Set.of("DataSet"), new ArrayList<>(schema.getAttributes()));
+//        } catch (Exception ignored) {
+//        }
+//        id = atlasApi.createEntity(schema.getName(), AzureBlobFileEntityBuilder.newInstance()
+//                .withDescription("This is a test description")
+//                .withAccount(storageAccount)
+//                .withContainer(containerName)
+//                .withBlobname(blobName)
+//                .withKeyName(storageAccount + "-key1")
+//                .build());
+//
+//        // perform the actual source file properties in Apache Atlas
+//        var lookup = new AtlasDataCatalog(atlasApi);
+//        DataEntry<DataCatalog> entry = DataEntry.Builder.newInstance().id(id).catalog(lookup).build();
+//
+//        // connect the "source" (i.e. the lookup) and the "destination"
+//        DataRequest dataRequest = DataRequest.Builder.newInstance()
+//                .id(id)
+//                .dataEntry(entry)
+//                .dataDestination(DataAddress.Builder.newInstance()
+//                        .type("AzureStorage")
+//                        .property("account", storageAccount)
+//                        .property("container", containerName)
+//                        .property("blobname", "bike_very_new.jpg")
+//                        .keyName(storageAccount + "-key1")
+//                        .build())
+//                .build();
+//
+//        //act
+//        DataFlowInitiateResponse response = controller.initiateFlow(dataRequest);
+//
+//        //assert
+//        assertEquals(ResponseStatus.OK, response.getStatus());
+//
+//        atlasApi.deleteEntities(Collections.singletonList(id));
+//
+//        // will fail if new blob is not there after 60 seconds
+//        while (listBlobs().stream().noneMatch(blob -> blob.getName().equals(id + ".complete"))) {
+//            Thread.sleep(500);
+//        }
+//        assertThat(listBlobs().stream().anyMatch(bi -> bi.getName().equals("bike_very_new.jpg"))).isTrue();
+//
+//    }
 
     @Test
     @Timeout(value = 10)
