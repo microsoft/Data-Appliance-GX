@@ -138,7 +138,7 @@ public class NifiDataFlowControllerTest {
 
         }
 
-
+        blobName = "testimage.jpg";
         URL testImageStream = Thread.currentThread().getContextClassLoader().getResource(blobName);
         String absolutePath = Objects.requireNonNull(Paths.get(testImageStream.toURI())).toString();
 
@@ -188,7 +188,7 @@ public class NifiDataFlowControllerTest {
         var response = blobContainerClient.createWithResponse(null, null, Duration.ofMillis(20_000), Context.NONE);
         response.getValue();
         // upload blob to storage
-        blobName = "testimage.jpg";
+
         System.out.println("prepare - upload test file to blob store");
 
         var blobClient = blobContainerClient.getBlobClient(blobName);
