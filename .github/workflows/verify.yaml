@@ -27,6 +27,7 @@ jobs:
           java-version: '11'
 
       - name: Gradle Test Nifi Integration
+        if: ${{ false }} # disabled due to current instability
         env:
           AZ_STORAGE_SAS: ${{ secrets.AZ_STORAGE_SAS }}
           NIFI_API_AUTH: ${{ secrets.NIFI_API_AUTH }}
