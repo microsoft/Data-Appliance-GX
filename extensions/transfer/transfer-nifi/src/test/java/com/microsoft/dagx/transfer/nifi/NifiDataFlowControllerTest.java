@@ -115,16 +115,25 @@ public class NifiDataFlowControllerTest {
         String processGroup = "root";
 
         try {
+            System.out.println("prepare - uploading template to nifi");
             var templateId = client.uploadTemplate(processGroup, file);
+            System.out.println("prepare - instantiate template in nifi");
             client.instantiateTemplate(templateId);
+            System.out.println("prepare - setup variable registry");
             var pg = client.getProcessGroup(processGroup);
-            client.updateVariableRegistry(processGroup, Map.of("s3.accessKeyId", s3AccessKeyId, "s3.secretAccessKey", s3SecretAccessKey), pg.revision);
+            try {
+                client.updateVariableRegistry(processGroup, Map.of("s3.accessKeyId", s3AccessKeyId, "s3.secretAccessKey", s3SecretAccessKey), pg.revision);
+            } catch (Exception ex) {
+                System.out.println("prepare - creating variable registry failed: " + ex.getMessage());
+            }
         } catch (DagxException ignored) {
         } finally {
+            System.out.println("prepare - start controller service");
             var controllerService = client.getControllerServices(processGroup).get(0);
             var version = controllerService.revision.version;
             var controllerServiceId = controllerService.id;
             client.startControllerService(controllerServiceId, version);
+            System.out.println("prepare - start process group");
             client.startProcessGroup(processGroup);
 
         }
