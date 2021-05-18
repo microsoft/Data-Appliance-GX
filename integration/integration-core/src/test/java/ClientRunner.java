@@ -15,7 +15,6 @@ import com.microsoft.dagx.spi.types.domain.metadata.QueryRequest;
 import com.microsoft.dagx.spi.types.domain.transfer.DataRequest;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -30,7 +29,6 @@ import static com.microsoft.dagx.spi.util.Cast.cast;
  *
  */
 @ExtendWith(DagxExtension.class)
-@Disabled
 public class ClientRunner {
     private static final String PROVIDER_CONNECTOR = "http://localhost:8181";
     private static final TokenResult US_TOKEN = TokenResult.Builder.newInstance().token("mock-us").build();

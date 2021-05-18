@@ -13,6 +13,7 @@ dependencies {
     api(project(":extensions:transfer:transfer-store-memory"))
 
     api(project(":extensions:transfer:transfer-provision-aws"))
+    api(project(":extensions:transfer:transfer-provision-azure"))
 
     api(project(":extensions:ids:ids-core"))
 //    testImplementation(project(":extensions:iam:oauth2"))

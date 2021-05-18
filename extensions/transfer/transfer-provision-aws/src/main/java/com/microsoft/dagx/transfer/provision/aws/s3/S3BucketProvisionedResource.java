@@ -27,6 +27,9 @@ public class S3BucketProvisionedResource extends ProvisionedDataDestinationResou
     @JsonProperty
     private String bucketName;
 
+    private S3BucketProvisionedResource() {
+    }
+
     public String getRegion() {
         return region;
     }
@@ -44,11 +47,17 @@ public class S3BucketProvisionedResource extends ProvisionedDataDestinationResou
                 .build();
     }
 
-    private S3BucketProvisionedResource() {
+    @Override
+    public String getResourceName() {
+        return bucketName;
     }
 
     @JsonPOJOBuilder(withPrefix = "")
     public static class Builder extends ProvisionedDataDestinationResource.Builder<S3BucketProvisionedResource, Builder> {
+
+        private Builder() {
+            super(new S3BucketProvisionedResource());
+        }
 
         @JsonCreator
         public static Builder newInstance() {
@@ -63,10 +72,6 @@ public class S3BucketProvisionedResource extends ProvisionedDataDestinationResou
         public Builder bucketName(String bucketName) {
             provisionedResource.bucketName = bucketName;
             return this;
-        }
-
-        private Builder() {
-            super(new S3BucketProvisionedResource());
         }
     }
 }

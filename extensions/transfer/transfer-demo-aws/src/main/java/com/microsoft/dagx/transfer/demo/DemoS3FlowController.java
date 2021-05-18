@@ -33,12 +33,12 @@ import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 
-public class DemoFlowController implements DataFlowController {
+public class DemoS3FlowController implements DataFlowController {
     private final Vault vault;
     private final Monitor monitor;
     private final RetryPolicy<Object> retryPolicy;
 
-    public DemoFlowController(Vault vault, Monitor monitor) {
+    public DemoS3FlowController(Vault vault, Monitor monitor) {
         this.vault = vault;
         this.monitor = monitor;
         retryPolicy = new RetryPolicy<>()
@@ -48,7 +48,7 @@ public class DemoFlowController implements DataFlowController {
 
     @Override
     public boolean canHandle(DataRequest dataRequest) {
-        return true;
+        return S3BucketSchema.TYPE.equals(dataRequest.getDestinationType());
     }
 
     @Override
