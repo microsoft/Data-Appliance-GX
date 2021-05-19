@@ -6,6 +6,7 @@
 package com.microsoft.dagx.transfer.provision.azure;
 
 import com.microsoft.dagx.spi.monitor.Monitor;
+import com.microsoft.dagx.spi.security.Vault;
 import com.microsoft.dagx.spi.system.ServiceExtension;
 import com.microsoft.dagx.spi.system.ServiceExtensionContext;
 import com.microsoft.dagx.spi.transfer.provision.ProvisionManager;
@@ -58,6 +59,13 @@ public class AzureProvisionExtension implements ServiceExtension {
 
     private void registerTypes(TypeManager typeManager) {
         typeManager.registerTypes(ObjectContainerProvisionedResource.class, ObjectStorageResourceDefinition.class);
+    }
+
+    private void obtainStorageAccessKey(ServiceExtensionContext context) {
+
+        var vault = context.getService(Vault.class);
+
+
     }
 
 }

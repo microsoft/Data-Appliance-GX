@@ -32,7 +32,7 @@ import static com.microsoft.dagx.spi.util.Cast.cast;
  *
  */
 @ExtendWith(DagxExtension.class)
-//@Disabled
+@Disabled
 public class ClientRunner {
     private static final String PROVIDER_CONNECTOR = "http://localhost:8181";
     private static final TokenResult US_TOKEN = TokenResult.Builder.newInstance().token("mock-us").build();
