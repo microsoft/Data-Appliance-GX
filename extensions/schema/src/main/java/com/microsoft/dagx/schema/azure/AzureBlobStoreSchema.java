@@ -19,7 +19,7 @@ public class AzureBlobStoreSchema extends DataSchema {
     @Override
     protected void addAttributes() {
         attributes.add(new SchemaAttribute(ACCOUNT_NAME, true));
-        attributes.add(new SchemaAttribute(BLOB_NAME, true));
+        attributes.add(new SchemaAttribute(BLOB_NAME, false));
         attributes.add(new SchemaAttribute(CONTAINER_NAME, true));
     }
 

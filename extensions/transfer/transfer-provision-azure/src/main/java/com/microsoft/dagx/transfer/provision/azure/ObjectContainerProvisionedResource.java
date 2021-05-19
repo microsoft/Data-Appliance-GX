@@ -19,6 +19,8 @@ import com.microsoft.dagx.spi.types.domain.transfer.ProvisionedResource;
 public class ObjectContainerProvisionedResource extends ProvisionedDataDestinationResource {
 
     @JsonProperty
+    String blobname;
+    @JsonProperty
     private String accountName;
     @JsonProperty
     private String containerName;
@@ -37,7 +39,7 @@ public class ObjectContainerProvisionedResource extends ProvisionedDataDestinati
                 .type(AzureBlobStoreSchema.TYPE)
                 .property(AzureBlobStoreSchema.CONTAINER_NAME, containerName)
                 .keyName(getResourceName())
-                .type(AzureBlobStoreSchema.TYPE)
+                .property(AzureBlobStoreSchema.ACCOUNT_NAME, accountName)
                 .build();
     }
 

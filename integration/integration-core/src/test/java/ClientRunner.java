@@ -131,6 +131,7 @@ public class ClientRunner {
                 .dataDestination(DataAddress.Builder.newInstance()
                         .type(AzureBlobStoreSchema.TYPE)
                         .property(AzureBlobStoreSchema.ACCOUNT_NAME, "dagxblobstoreitest")
+                        .property(AzureBlobStoreSchema.CONTAINER_NAME, "temp-dest-container")
                         .build())
                 .destinationType(AzureBlobStoreSchema.TYPE)
                 .build();

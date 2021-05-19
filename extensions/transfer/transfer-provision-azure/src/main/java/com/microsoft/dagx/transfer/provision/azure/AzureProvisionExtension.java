@@ -31,7 +31,7 @@ public class AzureProvisionExtension implements ServiceExtension {
         //noinspection unchecked
         var retryPolicy = (RetryPolicy<Object>) context.getService(RetryPolicy.class);
 
-        provisionManager.register(new ObjectStorageProvisioner(retryPolicy, monitor));
+        provisionManager.register(new ObjectStorageProvisioner(retryPolicy, monitor, context.getService(Vault.class)));
 
         // register the generator
         var manifestGenerator = context.getService(ResourceManifestGenerator.class);

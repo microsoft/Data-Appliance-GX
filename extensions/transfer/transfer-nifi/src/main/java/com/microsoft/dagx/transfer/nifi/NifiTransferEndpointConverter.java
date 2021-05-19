@@ -73,7 +73,7 @@ public class NifiTransferEndpointConverter {
             String name = requiredAttr.getName();
 
             if (dataAddress.getProperty(name) == null) {
-                throw new SchemaValidationException("Required property is missing in DataAddress: " + name);
+                throw new SchemaValidationException("Required property is missing in DataAddress: " + name + " (schema: " + schema.getName() + ")");
             }
         });
 
