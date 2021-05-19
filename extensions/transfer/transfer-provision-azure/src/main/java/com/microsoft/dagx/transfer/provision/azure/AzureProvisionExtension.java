@@ -31,7 +31,7 @@ public class AzureProvisionExtension implements ServiceExtension {
         //noinspection unchecked
         var retryPolicy = (RetryPolicy<Object>) context.getService(RetryPolicy.class);
 
-        provisionManager.register(new ObjectStorageProvisioner(retryPolicy, monitor, context.getService(Vault.class)));
+        provisionManager.register(new ObjectStorageProvisioner(retryPolicy, monitor));
 
         // register the generator
         var manifestGenerator = context.getService(ResourceManifestGenerator.class);
@@ -60,4 +60,12 @@ public class AzureProvisionExtension implements ServiceExtension {
     private void registerTypes(TypeManager typeManager) {
         typeManager.registerTypes(ObjectContainerProvisionedResource.class, ObjectStorageResourceDefinition.class);
     }
+
+    private void obtainStorageAccessKey(ServiceExtensionContext context) {
+
+        var vault = context.getService(Vault.class);
+
+
+    }
+
 }

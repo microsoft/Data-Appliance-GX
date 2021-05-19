@@ -11,7 +11,6 @@ import com.azure.storage.blob.sas.BlobContainerSasPermission;
 import com.azure.storage.blob.sas.BlobServiceSasSignatureValues;
 import com.azure.storage.common.StorageSharedKeyCredential;
 import com.microsoft.dagx.spi.monitor.Monitor;
-import com.microsoft.dagx.spi.security.Vault;
 import com.microsoft.dagx.spi.transfer.provision.ProvisionContext;
 import com.microsoft.dagx.spi.transfer.provision.Provisioner;
 import com.microsoft.dagx.spi.transfer.response.ResponseStatus;
@@ -28,13 +27,11 @@ import java.time.OffsetDateTime;
 public class ObjectStorageProvisioner implements Provisioner<ObjectStorageResourceDefinition, ObjectContainerProvisionedResource> {
     private final RetryPolicy<Object> retryPolicy;
     private final Monitor monitor;
-    private final Vault vault;
     private ProvisionContext context;
 
-    public ObjectStorageProvisioner(RetryPolicy<Object> retryPolicy, Monitor monitor, Vault vault) {
+    public ObjectStorageProvisioner(RetryPolicy<Object> retryPolicy, Monitor monitor) {
         this.retryPolicy = retryPolicy;
         this.monitor = monitor;
-        this.vault = vault;
     }
 
     @Override
@@ -59,11 +56,8 @@ public class ObjectStorageProvisioner implements Provisioner<ObjectStorageResour
 
         monitor.info("Azure Storage Container request submitted: " + containerName);
 
-        final String key = vault.resolveSecret(accountName + "-key1");
-        if (key == null) {
-            monitor.severe("No storage account credentials found in vault!");
-            return ResponseStatus.FATAL_ERROR;
-        }
+        //todo: get key from vault
+        final String key = "Z3sehdyeMxDWNS6PI9avYCQ/CHCDEYPCx9CQkf9vU+CyTOp8QfJbTzasA9MXEwIYxJeMwdBnnYzuYUa44ILwiA==";
         StorageSharedKeyCredential credential = new StorageSharedKeyCredential(accountName, key);
 
 
