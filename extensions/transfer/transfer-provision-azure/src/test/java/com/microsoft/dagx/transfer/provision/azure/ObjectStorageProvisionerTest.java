@@ -17,7 +17,6 @@ import com.microsoft.dagx.transfer.provision.azure.provider.BlobStoreApi;
 import net.jodah.failsafe.RetryPolicy;
 import org.easymock.Capture;
 import org.easymock.MockType;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +36,6 @@ class ObjectStorageProvisionerTest {
         Monitor monitor = niceMock(Monitor.class);
         blobStoreApiMock = mock(MockType.STRICT, BlobStoreApi.class);
         provisionContextMock = mock(ProvisionContext.class);
-
 
         provisioner = new ObjectStorageProvisioner(retryPolicy, monitor, blobStoreApiMock);
         provisioner.initialize(provisionContextMock);
@@ -59,7 +57,7 @@ class ObjectStorageProvisionerTest {
 
     @Test
     void deprovision_shouldNotDoAnything() {
-        assertThat(provisioner.deprovision(anyObject())).isEqualTo(ResponseStatus.OK);
+        assertThat(provisioner.deprovision(new ObjectContainerProvisionedResource())).isEqualTo(ResponseStatus.OK);
     }
 
     @Test
@@ -153,11 +151,6 @@ class ObjectStorageProvisionerTest {
 
         assertThatThrownBy(() -> provisioner.provision(resourceDef)).isInstanceOf(BlobStorageException.class);
         verify(blobStoreApiMock);
-    }
-
-    @AfterEach
-    void teardown() {
-        reset(blobStoreApiMock);
     }
 
     private ObjectStorageResourceDefinition createResourceDef() {
