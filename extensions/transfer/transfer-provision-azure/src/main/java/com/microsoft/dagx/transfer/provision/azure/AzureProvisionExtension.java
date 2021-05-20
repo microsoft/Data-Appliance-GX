@@ -12,6 +12,8 @@ import com.microsoft.dagx.spi.system.ServiceExtensionContext;
 import com.microsoft.dagx.spi.transfer.provision.ProvisionManager;
 import com.microsoft.dagx.spi.transfer.provision.ResourceManifestGenerator;
 import com.microsoft.dagx.spi.types.TypeManager;
+import com.microsoft.dagx.transfer.provision.azure.provider.BlobStoreApi;
+import com.microsoft.dagx.transfer.provision.azure.provider.BlobStoreApiImpl;
 import net.jodah.failsafe.RetryPolicy;
 
 import java.util.Set;
@@ -28,14 +30,16 @@ public class AzureProvisionExtension implements ServiceExtension {
         monitor = context.getMonitor();
         var provisionManager = context.getService(ProvisionManager.class);
 
+        context.registerService(BlobStoreApi.class, new BlobStoreApiImpl(context.getService(Vault.class)));
+
         //noinspection unchecked
         var retryPolicy = (RetryPolicy<Object>) context.getService(RetryPolicy.class);
-
-        provisionManager.register(new ObjectStorageProvisioner(retryPolicy, monitor, context.getService(Vault.class)));
+        provisionManager.register(new ObjectStorageProvisioner(retryPolicy, monitor, context.getService(BlobStoreApi.class)));
 
         // register the generator
         var manifestGenerator = context.getService(ResourceManifestGenerator.class);
         manifestGenerator.registerClientGenerator(new ObjectStorageDefinitionClientGenerator());
+
 
         registerTypes(context.getTypeManager());
 
