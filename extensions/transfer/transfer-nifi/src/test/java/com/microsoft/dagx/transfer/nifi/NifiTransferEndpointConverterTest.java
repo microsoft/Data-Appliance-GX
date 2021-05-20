@@ -58,7 +58,7 @@ class NifiTransferEndpointConverterTest {
         expect(registry.getSchema(type)).andReturn(schema);
         replay(registry);
 
-        var endpoint = converter.convert(da);
+        var endpoint= converter.convert(da);
         assertThat(endpoint.getType()).isEqualTo(type);
         assertThat(endpoint.getProperties()).hasSize(1)
                 .containsEntry("someprop", "someval");

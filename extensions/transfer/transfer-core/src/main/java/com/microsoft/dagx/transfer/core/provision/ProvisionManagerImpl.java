@@ -68,7 +68,7 @@ public class ProvisionManagerImpl implements ProvisionManager {
         }
     }
 
-    void onDestinationResource(ProvisionedDataDestinationResource destinationResource, DestinationSecretToken secretToken) {
+    void onDestinationResource(ProvisionedDataDestinationResource destinationResource, SecretToken secretToken) {
         var processId = destinationResource.getTransferProcessId();
         var transferProcess = processStore.find(processId);
         if (transferProcess == null) {

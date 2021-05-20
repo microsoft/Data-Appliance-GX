@@ -15,9 +15,9 @@ import com.microsoft.dagx.spi.security.Vault;
 import com.microsoft.dagx.spi.transfer.provision.ProvisionContext;
 import com.microsoft.dagx.spi.transfer.provision.Provisioner;
 import com.microsoft.dagx.spi.transfer.response.ResponseStatus;
-import com.microsoft.dagx.spi.types.domain.transfer.DestinationSecretToken;
 import com.microsoft.dagx.spi.types.domain.transfer.ProvisionedResource;
 import com.microsoft.dagx.spi.types.domain.transfer.ResourceDefinition;
+import net.jodah.failsafe.Failsafe;
 import net.jodah.failsafe.RetryPolicy;
 
 import java.time.OffsetDateTime;
@@ -59,7 +59,6 @@ public class ObjectStorageProvisioner implements Provisioner<ObjectStorageResour
 
         monitor.info("Azure Storage Container request submitted: " + containerName);
 
-        //todo: get key from vault
         final String key = vault.resolveSecret(accountName + "-key1");
 
         if (key == null) {
@@ -77,18 +76,19 @@ public class ObjectStorageProvisioner implements Provisioner<ObjectStorageResour
         //create the container
         var containerClient = blobContainerClient.getBlobContainerClient(containerName);
         if (!containerClient.exists()) {
-            containerClient.create();
+            Failsafe.with(retryPolicy).run(containerClient::create);
             monitor.debug("ObjectStorageProvisioner: created a new container " + containerName);
         } else {
             monitor.debug("ObjectStorageProvisioner: re-use existing container " + containerName);
         }
 
-        BlobContainerSasPermission permissions = BlobContainerSasPermission.parse("c");
+        BlobContainerSasPermission permissions = BlobContainerSasPermission.parse("w");
         OffsetDateTime expiryTime = OffsetDateTime.now().plusHours(1);
         BlobServiceSasSignatureValues vals = new BlobServiceSasSignatureValues(expiryTime, permissions);
         monitor.debug("ObjectStorageProvisioner: obtained temporary SAS token (write-only)");
 
-        String writeOnlySas = containerClient.generateSas(vals);
+        // the "?" is actually important, otherwise downstream transfer tools like nifi might complain
+        String writeOnlySas = "?" + Failsafe.with(retryPolicy).get(() -> containerClient.generateSas(vals));
 
         var resource = ObjectContainerProvisionedResource.Builder.newInstance()
                 .id(containerName)
@@ -97,7 +97,7 @@ public class ObjectStorageProvisioner implements Provisioner<ObjectStorageResour
                 .resourceDefinitionId(resourceDefinition.getId())
                 .transferProcessId(resourceDefinition.getTransferProcessId()).build();
 
-        var secretToken = new DestinationSecretToken(null, null, writeOnlySas, expiryTime.toInstant().toEpochMilli());
+        var secretToken = new AzureSasToken(writeOnlySas, expiryTime.toInstant().toEpochMilli());
 
         context.callback(resource, secretToken);
 

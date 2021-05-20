@@ -11,9 +11,11 @@ import com.microsoft.dagx.schema.SchemaValidationException;
 import com.microsoft.dagx.spi.security.Vault;
 import com.microsoft.dagx.spi.types.TypeManager;
 import com.microsoft.dagx.spi.types.domain.transfer.DataAddress;
+import com.microsoft.dagx.spi.types.domain.transfer.SecretToken;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class NifiTransferEndpointConverter {
     private final SchemaRegistry schemaRegistry;
@@ -43,20 +45,17 @@ public class NifiTransferEndpointConverter {
 
 
         var keyName = dataAddress.getProperties().remove("keyName");
-        String key = vault.resolveSecret(keyName);
-
         dataAddress.getProperties().remove("type");
 
 
         Map<String, String> properties = dataAddress.getProperties();
+        String secret = vault.resolveSecret(keyName);
 
         //different endpoints might have different credentials, such as SAS token, access key id + secret, etc.
         // this requireds that the credentials are stored as JSON-encoded Map
-        if (key != null) {
-            //noinspection unchecked
-            Map<String, String> secret = typeManager.readValue(key, Map.class);
-            properties.putAll(secret);
-        }
+
+        var secretTokenAsMap = typeManager.readValue(secret, SecretToken.class).flatten();
+        properties.putAll(secretTokenAsMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
 
         return NifiTransferEndpoint.NifiTransferEndpointBuilder.newInstance()
                 .type(type)
