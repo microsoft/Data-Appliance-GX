@@ -5,6 +5,8 @@
 
 package com.microsoft.dagx.transfer.nifi;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.microsoft.dagx.schema.Schema;
 import com.microsoft.dagx.schema.SchemaAttribute;
 import com.microsoft.dagx.schema.SchemaRegistry;
@@ -12,8 +14,11 @@ import com.microsoft.dagx.schema.SchemaValidationException;
 import com.microsoft.dagx.spi.security.Vault;
 import com.microsoft.dagx.spi.types.TypeManager;
 import com.microsoft.dagx.spi.types.domain.transfer.DataAddress;
+import com.microsoft.dagx.spi.types.domain.transfer.SecretToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -29,9 +34,13 @@ class NifiTransferEndpointConverterTest {
         Vault vault = mock(Vault.class);
         registry = mock(SchemaRegistry.class);
         var typeManager = new TypeManager();
+        TypeManager typeManager = new TypeManager();
+        typeManager.registerTypes(TestToken.class);
         converter = new NifiTransferEndpointConverter(registry, vault, typeManager);
 
         expect(vault.resolveSecret("VerySecret")).andReturn("thesecret").anyTimes();
+        expect(vault.resolveSecret("VerySecret")).andReturn(typeManager.writeValueAsString(new TestToken("muchSecret"))).times(1);
+        replay(vault);
     }
 
     @Test
@@ -58,9 +67,10 @@ class NifiTransferEndpointConverterTest {
         expect(registry.getSchema(type)).andReturn(schema);
         replay(registry);
 
-        var endpoint= converter.convert(da);
+        var endpoint = converter.convert(da);
         assertThat(endpoint.getType()).isEqualTo(type);
-        assertThat(endpoint.getProperties()).hasSize(1)
+        assertThat(endpoint.getProperties()).hasSize(2)
+                .containsEntry("token", "muchSecret")
                 .containsEntry("someprop", "someval");
         verify(registry);
     }
@@ -121,7 +131,7 @@ class NifiTransferEndpointConverterTest {
         replay(registry);
 
         assertThatThrownBy(() -> converter.convert(da)).isInstanceOf(SchemaValidationException.class)
-                .hasMessage("Required property is missing in DataAddress: anotherprop");
+                .hasMessage("Required property is missing in DataAddress: anotherprop (schema: SomeType)");
     }
 
     @Test
@@ -220,4 +230,27 @@ class NifiTransferEndpointConverterTest {
                 .hasMessage("No type was specified!");
     }
 
+    @JsonTypeName("dagx:testtoken")
+    private static class TestToken implements SecretToken {
+
+        @JsonProperty("token")
+        private String token;
+
+        private TestToken(String token) {
+            this.token = token;
+        }
+
+        public TestToken() {
+        }
+
+        @Override
+        public long getExpiration() {
+            return 0;
+        }
+
+        @Override
+        public Map<String, ?> flatten() {
+            return Map.of("token", token);
+        }
+    }
 }

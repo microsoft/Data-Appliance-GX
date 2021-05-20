@@ -100,7 +100,7 @@ public class AwsProvisionExtension implements ServiceExtension {
     }
 
     private void registerTypes(TypeManager typeManager) {
-        typeManager.registerTypes(S3BucketProvisionedResource.class, S3BucketResourceDefinition.class);
+        typeManager.registerTypes(S3BucketProvisionedResource.class, S3BucketResourceDefinition.class, AwsTemporarySecretToken.class);
     }
 
 

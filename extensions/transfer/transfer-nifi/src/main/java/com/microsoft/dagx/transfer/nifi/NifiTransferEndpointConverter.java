@@ -11,7 +11,6 @@ import com.microsoft.dagx.schema.SchemaValidationException;
 import com.microsoft.dagx.spi.security.Vault;
 import com.microsoft.dagx.spi.types.TypeManager;
 import com.microsoft.dagx.spi.types.domain.transfer.DataAddress;
-import com.microsoft.dagx.spi.types.domain.transfer.SecretToken;
 
 import java.util.Map;
 import java.util.Objects;
