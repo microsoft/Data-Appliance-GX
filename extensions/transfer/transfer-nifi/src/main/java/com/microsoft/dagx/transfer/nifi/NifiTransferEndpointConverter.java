@@ -53,7 +53,7 @@ public class NifiTransferEndpointConverter {
         //different endpoints might have different credentials, such as SAS token, access key id + secret, etc.
         // this requireds that the credentials are stored as JSON-encoded Map
 
-        var secretTokenAsMap = typeManager.readValue(secret, SecretToken.class).flatten();
+        Map<String, ?> secretTokenAsMap = typeManager.readValue(secret, Map.class);
         properties.putAll(secretTokenAsMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString())));
 
         return NifiTransferEndpoint.NifiTransferEndpointBuilder.newInstance()

@@ -231,19 +231,18 @@ public class NifiDataFlowControllerTest {
                 .build();
         typeManager.registerTypes(DataRequest.class);
 
-        vault = mock(MockType.STRICT, Vault.class);
+        vault = mock(MockType.NICE, Vault.class);
         var nifiAuth = propOrEnv("NIFI_API_AUTH", null);
         if (nifiAuth == null) {
             throw new RuntimeException("No environment variable found NIFI_API_AUTH!");
         }
         expect(vault.resolveSecret(NifiDataFlowController.NIFI_CREDENTIALS)).andReturn(nifiAuth);
+
         var tokenJson = typeManager.writeValueAsString(new AzureSasToken(sharedAccessSignature, 0));
-        expect(vault.resolveSecret(storageAccount + "-key1")).andReturn(tokenJson);
-        expect(vault.resolveSecret(storageAccount + "-key1")).andReturn(tokenJson);
+        expect(vault.resolveSecret(storageAccount + "-key1")).andReturn(tokenJson).anyTimes();
 
         var token = Map.of("accessKeyId", "AKIAY2XSTIMWG2HEKF77", "secretAccessKey", "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", "sessionToken", "");
-        expect(vault.resolveSecret(s3BucketName)).andReturn(typeManager.writeValueAsString(token));
-        expect(vault.resolveSecret(s3BucketName)).andReturn(typeManager.writeValueAsString(token));
+        expect(vault.resolveSecret(s3BucketName)).andReturn(typeManager.writeValueAsString(token)).anyTimes();
 
         replay(vault);
         SchemaRegistry registry = new SchemaRegistryImpl();
