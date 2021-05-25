@@ -61,6 +61,7 @@ jobs:
         run: ./gradlew extensions:transfer:transfer-nifi:check
 
       - name: Test Atlas Integration
+        if: ${{ false }}
         env:
           AZ_STORAGE_SAS: ${{ secrets.AZ_STORAGE_SAS }}
           NIFI_API_AUTH: ${{ secrets.NIFI_API_AUTH }}
@@ -80,6 +81,7 @@ jobs:
           java-version: '11'
 
       - name: Test Azure Vault Integration
+        if: ${{ false }}
         env:
           AZ_STORAGE_SAS: ${{ secrets.AZ_STORAGE_SAS }}
           NIFI_API_AUTH: ${{ secrets.NIFI_API_AUTH }}
