@@ -74,7 +74,7 @@ public class AtlasStruct implements Serializable {
             sb = new StringBuilder();
         }
 
-        if (!objList.isEmpty()) {
+        if (Functions.isNotEmpty(objList)) {
             int i = 0;
             for (AtlasStruct obj : objList) {
                 if (i > 0) {
@@ -94,7 +94,7 @@ public class AtlasStruct implements Serializable {
             sb = new StringBuilder();
         }
 
-        if (objects != null && !objects.isEmpty()) {
+        if (Functions.isNotEmpty(objects)) {
             int i = 0;
             for (Object obj : objects) {
                 if (i > 0) {
@@ -114,7 +114,7 @@ public class AtlasStruct implements Serializable {
             sb = new StringBuilder();
         }
 
-        if (objects != null && !objects.isEmpty()) {
+        if (Functions.isNotEmpty(objects)) {
             int i = 0;
             for (Map.Entry<?, ?> e : objects.entrySet()) {
                 if (i > 0) {
@@ -172,9 +172,6 @@ public class AtlasStruct implements Serializable {
     public void setAttribute(String name, Object value) {
         Map<String, Object> a = attributes;
 
-        if (name == null) {
-            return;
-        }
         if (a != null) {
             a.put(name, value);
         } else {
@@ -229,4 +226,5 @@ public class AtlasStruct implements Serializable {
     public String toString() {
         return toString(new StringBuilder()).toString();
     }
+
 }

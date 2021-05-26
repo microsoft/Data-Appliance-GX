@@ -29,14 +29,37 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
 
     // do not update this list contents directly - the list might be in the middle of iteration in another thread
     // to update list contents: 1) make a copy 2) update the copy 3) assign the copy to this member
-    private List<AtlasAttributeDef> attributeDefs;
+    private List<AtlasStructDef.AtlasAttributeDef> attributeDefs;
 
+    public AtlasStructDef() {
+        this(null, null, null, null, null);
+    }
 
-    protected AtlasStructDef(TypeCategory category, String name, String description, String typeVersion, List<AtlasAttributeDef> attributeDefs, Map<String, String> options) {
+    public AtlasStructDef(String name) {
+        this(name, null, null, null, null);
+    }
+
+    public AtlasStructDef(String name, String description) {
+        this(name, description, null, null, null);
+    }
+
+    public AtlasStructDef(String name, String description, String typeVersion) {
+        this(name, description, typeVersion, null, null);
+    }
+
+    public AtlasStructDef(String name, String description, String typeVersion, List<AtlasStructDef.AtlasAttributeDef> attributeDefs) {
+        this(name, description, typeVersion, attributeDefs, null);
+    }
+
+    public AtlasStructDef(String name, String description, String typeVersion, List<AtlasStructDef.AtlasAttributeDef> attributeDefs, Map<String, String> options) {
+        this(TypeCategory.STRUCT, name, description, typeVersion, attributeDefs, options);
+    }
+
+    protected AtlasStructDef(TypeCategory category, String name, String description, String typeVersion, List<AtlasStructDef.AtlasAttributeDef> attributeDefs, Map<String, String> options) {
         this(category, name, description, typeVersion, attributeDefs, null, options);
     }
 
-    protected AtlasStructDef(TypeCategory category, String name, String description, String typeVersion, List<AtlasAttributeDef> attributeDefs, String serviceType, Map<String, String> options) {
+    protected AtlasStructDef(TypeCategory category, String name, String description, String typeVersion, List<AtlasStructDef.AtlasAttributeDef> attributeDefs, String serviceType, Map<String, String> options) {
         super(category, name, description, typeVersion, serviceType, options);
 
         setAttributeDefs(attributeDefs);
@@ -48,16 +71,16 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
         setAttributeDefs(other != null ? other.getAttributeDefs() : null);
     }
 
-    private static boolean hasAttribute(List<AtlasAttributeDef> attributeDefs, String attrName) {
+    private static boolean hasAttribute(List<AtlasStructDef.AtlasAttributeDef> attributeDefs, String attrName) {
         return findAttribute(attributeDefs, attrName) != null;
     }
 
-    public static AtlasAttributeDef findAttribute(Collection<AtlasAttributeDef> attributeDefs, String attrName) {
-        AtlasAttributeDef ret = null;
+    public static AtlasStructDef.AtlasAttributeDef findAttribute(Collection<AtlasStructDef.AtlasAttributeDef> attributeDefs, String attrName) {
+        AtlasStructDef.AtlasAttributeDef ret = null;
 
-        if (!attributeDefs.isEmpty()) {
-            for (AtlasAttributeDef attributeDef : attributeDefs) {
-                if (attributeDef.getName().equalsIgnoreCase(attrName)) {
+        if (Functions.isNotEmpty(attributeDefs)) {
+            for (AtlasStructDef.AtlasAttributeDef attributeDef : attributeDefs) {
+                if (Functions.equalsIgnoreCase(attributeDef.getName(), attrName)) {
                     ret = attributeDef;
                     break;
                 }
@@ -67,32 +90,32 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
         return ret;
     }
 
-    public List<AtlasAttributeDef> getAttributeDefs() {
+    public List<AtlasStructDef.AtlasAttributeDef> getAttributeDefs() {
         return attributeDefs;
     }
 
-    public void setAttributeDefs(List<AtlasAttributeDef> attributeDefs) {
+    public void setAttributeDefs(List<AtlasStructDef.AtlasAttributeDef> attributeDefs) {
         if (this.attributeDefs != null && this.attributeDefs == attributeDefs) {
             return;
         }
 
-        if (attributeDefs == null || attributeDefs.isEmpty()) {
+        if (Functions.isEmpty(attributeDefs)) {
             this.attributeDefs = new ArrayList<>();
         } else {
             // if multiple attributes with same name are present, keep only the last entry
-            List<AtlasAttributeDef> tmpList = new ArrayList<>(attributeDefs.size());
+            List<AtlasStructDef.AtlasAttributeDef> tmpList = new ArrayList<>(attributeDefs.size());
             Set<String> attribNames = new HashSet<>();
 
-            ListIterator<AtlasAttributeDef> iter = attributeDefs.listIterator(attributeDefs.size());
+            ListIterator<AtlasStructDef.AtlasAttributeDef> iter = attributeDefs.listIterator(attributeDefs.size());
             while (iter.hasPrevious()) {
-                AtlasAttributeDef attributeDef = iter.previous();
+                AtlasStructDef.AtlasAttributeDef attributeDef = iter.previous();
                 String attribName = attributeDef != null ? attributeDef.getName() : null;
 
                 if (attribName != null) {
                     attribName = attribName.toLowerCase();
 
                     if (!attribNames.contains(attribName)) {
-                        tmpList.add(new AtlasAttributeDef(attributeDef));
+                        tmpList.add(new AtlasStructDef.AtlasAttributeDef(attributeDef));
 
                         attribNames.add(attribName);
                     }
@@ -104,40 +127,40 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
         }
     }
 
-    public AtlasAttributeDef getAttribute(String attrName) {
+    public AtlasStructDef.AtlasAttributeDef getAttribute(String attrName) {
         return findAttribute(attributeDefs, attrName);
     }
 
-    public void addAttribute(AtlasAttributeDef attributeDef) {
+    public void addAttribute(AtlasStructDef.AtlasAttributeDef attributeDef) {
         if (attributeDef == null) {
             return;
         }
 
-        List<AtlasAttributeDef> a = attributeDefs;
+        List<AtlasStructDef.AtlasAttributeDef> a = attributeDefs;
 
-        List<AtlasAttributeDef> tmpList = new ArrayList<>();
-        if (!a.isEmpty()) {
+        List<AtlasStructDef.AtlasAttributeDef> tmpList = new ArrayList<>();
+        if (Functions.isNotEmpty(a)) {
             // copy existing attributes, except ones having same name as the attribute being added
-            for (AtlasAttributeDef existingAttrDef : a) {
-                if (!existingAttrDef.getName().equalsIgnoreCase(attributeDef.getName())) {
+            for (AtlasStructDef.AtlasAttributeDef existingAttrDef : a) {
+                if (!Functions.equalsIgnoreCase(existingAttrDef.getName(), attributeDef.getName())) {
                     tmpList.add(existingAttrDef);
                 }
             }
         }
-        tmpList.add(new AtlasAttributeDef(attributeDef));
+        tmpList.add(new AtlasStructDef.AtlasAttributeDef(attributeDef));
 
         attributeDefs = tmpList;
     }
 
     public void removeAttribute(String attrName) {
-        List<AtlasAttributeDef> a = attributeDefs;
+        List<AtlasStructDef.AtlasAttributeDef> a = attributeDefs;
 
         if (hasAttribute(a, attrName)) {
-            List<AtlasAttributeDef> tmpList = new ArrayList<>();
+            List<AtlasStructDef.AtlasAttributeDef> tmpList = new ArrayList<>();
 
             // copy existing attributes, except ones having same name as the attribute being removed
-            for (AtlasAttributeDef existingAttrDef : a) {
-                if (!existingAttrDef.getName().equalsIgnoreCase(attrName)) {
+            for (AtlasStructDef.AtlasAttributeDef existingAttrDef : a) {
+                if (!Functions.equalsIgnoreCase(existingAttrDef.getName(), attrName)) {
                     tmpList.add(existingAttrDef);
                 }
             }
@@ -159,9 +182,9 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
         sb.append("AtlasStructDef{");
         super.toString(sb);
         sb.append(", attributeDefs=[");
-        if (!attributeDefs.isEmpty()) {
+        if (Functions.isNotEmpty(attributeDefs)) {
             int i = 0;
-            for (AtlasAttributeDef attributeDef : attributeDefs) {
+            for (AtlasStructDef.AtlasAttributeDef attributeDef : attributeDefs) {
                 attributeDef.toString(sb);
                 if (i > 0) {
                     sb.append(", ");
@@ -218,7 +241,7 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
         private String name;
         private String typeName;
         private boolean isOptional;
-        private Cardinality cardinality;
+        private AtlasStructDef.AtlasAttributeDef.Cardinality cardinality;
         private int valuesMinCount;
         private int valuesMaxCount;
         private boolean isUnique;
@@ -227,40 +250,56 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
         private String defaultValue;
         private String description;
         private int searchWeight = DEFAULT_SEARCHWEIGHT;
-        private IndexType indexType = null;
-        private List<AtlasConstraintDef> constraints;
+        private AtlasStructDef.AtlasAttributeDef.IndexType indexType = null;
+        private List<AtlasStructDef.AtlasConstraintDef> constraints;
         private Map<String, String> options;
         private String displayName;
-
         public AtlasAttributeDef() {
             this(null, null);
         }
-
         public AtlasAttributeDef(String name, String typeName) {
             this(name, typeName, DEFAULT_SEARCHWEIGHT);
         }
 
-        public AtlasAttributeDef(String name, String typeName, int searchWeight) {
-            this(name, typeName, false, Cardinality.SINGLE, searchWeight, null);
+        public AtlasAttributeDef(String name, String typeName, boolean isUnique, boolean isIndexable) {
+            this(name, typeName, false, AtlasStructDef.AtlasAttributeDef.Cardinality.SINGLE, COUNT_NOT_SET, COUNT_NOT_SET, isUnique, isIndexable,
+                    false, null, null, null, null, DEFAULT_SEARCHWEIGHT, null);
         }
 
-        private AtlasAttributeDef(String name, String typeName, boolean isOptional, Cardinality cardinality, int searchWeight, IndexType indexType) {
+        public AtlasAttributeDef(String name, String typeName, AtlasStructDef.AtlasAttributeDef.Cardinality cardinality, boolean isUnique, boolean isIndexable) {
+            this(name, typeName, false, cardinality, COUNT_NOT_SET, COUNT_NOT_SET, isUnique, isIndexable,
+                    false, null, null, null, null, DEFAULT_SEARCHWEIGHT, null);
+        }
+
+        public AtlasAttributeDef(String name, String typeName, int searchWeight) {
+            this(name, typeName, false, AtlasStructDef.AtlasAttributeDef.Cardinality.SINGLE, searchWeight, null);
+        }
+
+        public AtlasAttributeDef(String name, String typeName, int searchWeight, AtlasStructDef.AtlasAttributeDef.IndexType indexType) {
+            this(name, typeName, false, AtlasStructDef.AtlasAttributeDef.Cardinality.SINGLE, searchWeight, indexType);
+        }
+
+        public AtlasAttributeDef(String name, String typeName, boolean isOptional, AtlasStructDef.AtlasAttributeDef.Cardinality cardinality) {
+            this(name, typeName, isOptional, cardinality, DEFAULT_SEARCHWEIGHT, null);
+        }
+
+        private AtlasAttributeDef(String name, String typeName, boolean isOptional, AtlasStructDef.AtlasAttributeDef.Cardinality cardinality, int searchWeight, AtlasStructDef.AtlasAttributeDef.IndexType indexType) {
             this(name, typeName, isOptional, cardinality, COUNT_NOT_SET, COUNT_NOT_SET, false, false, false, null, searchWeight, indexType);
         }
 
-        public AtlasAttributeDef(String name, String typeName, boolean isOptional, Cardinality cardinality,
-                                 int valuesMinCount, int valuesMaxCount, boolean isUnique, boolean isIndexable, boolean includeInNotification, List<AtlasConstraintDef> constraints) {
+        public AtlasAttributeDef(String name, String typeName, boolean isOptional, AtlasStructDef.AtlasAttributeDef.Cardinality cardinality,
+                                 int valuesMinCount, int valuesMaxCount, boolean isUnique, boolean isIndexable, boolean includeInNotification, List<AtlasStructDef.AtlasConstraintDef> constraints) {
             this(name, typeName, isOptional, cardinality, valuesMinCount, valuesMaxCount, isUnique, isIndexable, includeInNotification, constraints, DEFAULT_SEARCHWEIGHT, null);
         }
 
-        private AtlasAttributeDef(String name, String typeName, boolean isOptional, Cardinality cardinality,
-                                  int valuesMinCount, int valuesMaxCount, boolean isUnique, boolean isIndexable, boolean includeInNotification, List<AtlasConstraintDef> constraints, int searchWeight, IndexType indexType) {
+        private AtlasAttributeDef(String name, String typeName, boolean isOptional, AtlasStructDef.AtlasAttributeDef.Cardinality cardinality,
+                                  int valuesMinCount, int valuesMaxCount, boolean isUnique, boolean isIndexable, boolean includeInNotification, List<AtlasStructDef.AtlasConstraintDef> constraints, int searchWeight, AtlasStructDef.AtlasAttributeDef.IndexType indexType) {
             this(name, typeName, isOptional, cardinality, valuesMinCount, valuesMaxCount, isUnique, isIndexable, includeInNotification, null, constraints, null, null, searchWeight, indexType);
         }
 
-        public AtlasAttributeDef(String name, String typeName, boolean isOptional, Cardinality cardinality,
+        public AtlasAttributeDef(String name, String typeName, boolean isOptional, AtlasStructDef.AtlasAttributeDef.Cardinality cardinality,
                                  int valuesMinCount, int valuesMaxCount, boolean isUnique, boolean isIndexable, boolean includeInNotification, String defaultValue,
-                                 List<AtlasConstraintDef> constraints, Map<String, String> options, String description, int searchWeight, IndexType indexType) {
+                                 List<AtlasStructDef.AtlasConstraintDef> constraints, Map<String, String> options, String description, int searchWeight, AtlasStructDef.AtlasAttributeDef.IndexType indexType) {
             setName(name);
             setTypeName(typeName);
             setIsOptional(isOptional);
@@ -278,7 +317,7 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
             setIndexType(indexType);
         }
 
-        public AtlasAttributeDef(AtlasAttributeDef other) {
+        public AtlasAttributeDef(AtlasStructDef.AtlasAttributeDef other) {
             if (other != null) {
                 setName(other.getName());
                 setTypeName(other.getTypeName());
@@ -315,11 +354,11 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
             this.searchWeight = searchWeight;
         }
 
-        public IndexType getIndexType() {
+        public AtlasStructDef.AtlasAttributeDef.IndexType getIndexType() {
             return indexType;
         }
 
-        public void setIndexType(IndexType indexType) {
+        public void setIndexType(AtlasStructDef.AtlasAttributeDef.IndexType indexType) {
             this.indexType = indexType;
         }
 
@@ -347,11 +386,11 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
             isOptional = optional;
         }
 
-        public Cardinality getCardinality() {
+        public AtlasStructDef.AtlasAttributeDef.Cardinality getCardinality() {
             return cardinality;
         }
 
-        public void setCardinality(Cardinality cardinality) {
+        public void setCardinality(AtlasStructDef.AtlasAttributeDef.Cardinality cardinality) {
             this.cardinality = cardinality;
         }
 
@@ -403,24 +442,24 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
             this.defaultValue = defaultValue;
         }
 
-        public List<AtlasConstraintDef> getConstraints() {
+        public List<AtlasStructDef.AtlasConstraintDef> getConstraints() {
             return constraints;
         }
 
-        public void setConstraints(List<AtlasConstraintDef> constraints) {
+        public void setConstraints(List<AtlasStructDef.AtlasConstraintDef> constraints) {
             if (this.constraints != null && this.constraints == constraints) {
                 return;
             }
 
-            if (constraints == null || constraints.isEmpty()) {
+            if (Functions.isEmpty(constraints)) {
                 this.constraints = null;
             } else {
                 this.constraints = new ArrayList<>(constraints);
             }
         }
 
-        public void addConstraint(AtlasConstraintDef constraintDef) {
-            List<AtlasConstraintDef> cDefs = constraints;
+        public void addConstraint(AtlasStructDef.AtlasConstraintDef constraintDef) {
+            List<AtlasStructDef.AtlasConstraintDef> cDefs = constraints;
 
             if (cDefs == null) {
                 cDefs = new ArrayList<>();
@@ -446,13 +485,13 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
         @JsonIgnore
         public boolean isSoftReferenced() {
             return options != null &&
-                    getOptions().containsKey(AtlasAttributeDef.ATTRDEF_OPTION_SOFT_REFERENCE) &&
-                    getOptions().get(AtlasAttributeDef.ATTRDEF_OPTION_SOFT_REFERENCE).equals(STRING_TRUE);
+                    getOptions().containsKey(AtlasStructDef.AtlasAttributeDef.ATTRDEF_OPTION_SOFT_REFERENCE) &&
+                    getOptions().get(AtlasStructDef.AtlasAttributeDef.ATTRDEF_OPTION_SOFT_REFERENCE).equals(STRING_TRUE);
         }
 
         @JsonIgnore
         public boolean isAppendOnPartialUpdate() {
-            String val = getOption(AtlasAttributeDef.ATTRDEF_OPTION_APPEND_ON_PARTIAL_UPDATE);
+            String val = getOption(AtlasStructDef.AtlasAttributeDef.ATTRDEF_OPTION_APPEND_ON_PARTIAL_UPDATE);
 
             return val != null && Boolean.valueOf(val);
         }
@@ -503,9 +542,9 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
             sb.append(", indexType='").append(indexType).append('\'');
             sb.append(", displayName='").append(displayName).append('\'');
             sb.append(", constraints=[");
-            if (!constraints.isEmpty()) {
+            if (Functions.isNotEmpty(constraints)) {
                 int i = 0;
-                for (AtlasConstraintDef constraintDef : constraints) {
+                for (AtlasStructDef.AtlasConstraintDef constraintDef : constraints) {
                     constraintDef.toString(sb);
                     if (i > 0) {
                         sb.append(", ");
@@ -527,7 +566,7 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            AtlasAttributeDef that = (AtlasAttributeDef) o;
+            AtlasStructDef.AtlasAttributeDef that = (AtlasStructDef.AtlasAttributeDef) o;
             return isOptional == that.isOptional &&
                     valuesMinCount == that.valuesMinCount &&
                     valuesMaxCount == that.valuesMaxCount &&
@@ -595,7 +634,7 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
             }
         }
 
-        public AtlasConstraintDef(AtlasConstraintDef that) {
+        public AtlasConstraintDef(AtlasStructDef.AtlasConstraintDef that) {
             if (that != null) {
                 type = that.type;
 
@@ -623,7 +662,7 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
 
         @JsonIgnore
         public boolean isConstraintType(String name) {
-            return type.equalsIgnoreCase(name);
+            return Functions.equalsIgnoreCase(name, type);
         }
 
         @JsonIgnore
@@ -654,7 +693,7 @@ public class AtlasStructDef extends AtlasBaseTypeDef implements Serializable {
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-            AtlasConstraintDef that = (AtlasConstraintDef) o;
+            AtlasStructDef.AtlasConstraintDef that = (AtlasStructDef.AtlasConstraintDef) o;
             return Objects.equals(type, that.type) &&
                     Objects.equals(params, that.params);
         }

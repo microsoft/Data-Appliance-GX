@@ -50,10 +50,10 @@ public class AtlasEntity extends AtlasStruct implements Serializable {
 
     private Map<String, Object> relationshipAttributes;
     private List<AtlasClassification> classifications;
+    private List<AtlasTermAssignmentHeader> meanings;
     private Map<String, String> customAttributes;
     private Map<String, Map<String, Object>> businessAttributes;
     private Set<String> labels;
-    private List<AtlasTermAssignmentHeader> meanings;
 
     public AtlasEntity() {
         this(null, null);
@@ -77,6 +77,15 @@ public class AtlasEntity extends AtlasStruct implements Serializable {
         super(typeName, attributes);
 
         init();
+    }
+
+    public AtlasEntity(AtlasEntityHeader header) {
+        super(header.getTypeName(), header.getAttributes());
+
+        setGuid(header.getGuid());
+        setStatus(header.getStatus());
+        setClassifications(header.getClassifications());
+        setMeanings(header.getMeanings());
     }
 
     public AtlasEntity(Map map) {
@@ -424,8 +433,10 @@ public class AtlasEntity extends AtlasStruct implements Serializable {
         dumpObjects(relationshipAttributes, sb);
         sb.append("]");
         sb.append(", classifications=[");
-        AtlasBaseTypeDef.dumpObjects(classifications, sb);
+        org.apache.atlas.model.typedef.AtlasBaseTypeDef.dumpObjects(classifications, sb);
         sb.append(']');
+        sb.append(", meanings=[");
+        org.apache.atlas.model.typedef.AtlasBaseTypeDef.dumpObjects(meanings, sb);
         sb.append(']');
         sb.append(", customAttributes=[");
         dumpObjects(customAttributes, sb);
@@ -599,7 +610,7 @@ public class AtlasEntity extends AtlasStruct implements Serializable {
 
             sb.append("AtlasEntityExtInfo{");
             sb.append("referredEntities={");
-            AtlasBaseTypeDef.dumpObjects(referredEntities, sb);
+            org.apache.atlas.model.typedef.AtlasBaseTypeDef.dumpObjects(referredEntities, sb);
             sb.append("}");
             sb.append("}");
 
@@ -616,7 +627,7 @@ public class AtlasEntity extends AtlasStruct implements Serializable {
                 return false;
             }
 
-            AtlasEntity.AtlasEntityExtInfo that = (AtlasEntityExtInfo) o;
+            AtlasEntity.AtlasEntityExtInfo that = (AtlasEntity.AtlasEntityExtInfo) o;
             return Objects.equals(referredEntities, that.referredEntities);
         }
 
@@ -667,7 +678,7 @@ public class AtlasEntity extends AtlasStruct implements Serializable {
             AtlasEntity ret = super.getEntity(guid);
 
             if (ret == null && entity != null) {
-                if (entity.getGuid().equals(guid)) {
+                if (Functions.equals(guid, entity.getGuid())) {
                     ret = entity;
                 }
             }
@@ -710,7 +721,7 @@ public class AtlasEntity extends AtlasStruct implements Serializable {
                 return false;
             }
 
-            AtlasEntityWithExtInfo that = (AtlasEntityWithExtInfo) o;
+            AtlasEntity.AtlasEntityWithExtInfo that = (AtlasEntity.AtlasEntityWithExtInfo) o;
             return Objects.equals(entity, that.entity);
         }
 
@@ -720,4 +731,128 @@ public class AtlasEntity extends AtlasStruct implements Serializable {
         }
     }
 
+    @JsonAutoDetect(getterVisibility = PUBLIC_ONLY, setterVisibility = PUBLIC_ONLY, fieldVisibility = NONE)
+    @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class AtlasEntitiesWithExtInfo extends AtlasEntity.AtlasEntityExtInfo {
+        private static final long serialVersionUID = 1L;
+
+        private List<AtlasEntity> entities;
+
+        public AtlasEntitiesWithExtInfo() {
+            this(null, null);
+        }
+
+        public AtlasEntitiesWithExtInfo(AtlasEntity entity) {
+            this(Arrays.asList(entity), null);
+        }
+
+        public AtlasEntitiesWithExtInfo(List<AtlasEntity> entities) {
+            this(entities, null);
+        }
+
+        public AtlasEntitiesWithExtInfo(AtlasEntity.AtlasEntityWithExtInfo entity) {
+            this(Arrays.asList(entity.getEntity()), entity);
+        }
+
+        public AtlasEntitiesWithExtInfo(List<AtlasEntity> entities, AtlasEntity.AtlasEntityExtInfo extInfo) {
+            super(extInfo);
+
+            this.entities = entities;
+        }
+
+        public List<AtlasEntity> getEntities() {
+            return entities;
+        }
+
+        public void setEntities(List<AtlasEntity> entities) {
+            this.entities = entities;
+        }
+
+        @JsonIgnore
+        @Override
+        public AtlasEntity getEntity(String guid) {
+            AtlasEntity ret = super.getEntity(guid);
+
+            if (ret == null && Functions.isNotEmpty(entities)) {
+                for (AtlasEntity entity : entities) {
+                    if (Functions.equals(guid, entity.getGuid())) {
+                        ret = entity;
+
+                        break;
+                    }
+                }
+            }
+
+            return ret;
+        }
+
+        public void addEntity(AtlasEntity entity) {
+            List<AtlasEntity> entities = this.entities;
+
+            if (entities == null) {
+                entities = new ArrayList<>();
+
+                this.entities = entities;
+            }
+
+            entities.add(entity);
+        }
+
+        public void removeEntity(AtlasEntity entity) {
+            List<AtlasEntity> entities = this.entities;
+
+            if (entity != null && entities != null) {
+                entities.remove(entity);
+            }
+        }
+
+        @Override
+        public void compact() {
+            super.compact();
+
+            // remove 'entities' from referredEntities
+            if (Functions.isNotEmpty(entities)) {
+                for (AtlasEntity entity : entities) {
+                    removeReferredEntity(entity.getGuid());
+                }
+            }
+        }
+
+        @Override
+        public StringBuilder toString(StringBuilder sb) {
+            if (sb == null) {
+                sb = new StringBuilder();
+            }
+
+            sb.append("AtlasEntitiesWithExtInfo{");
+            sb.append("entities=[");
+            AtlasBaseTypeDef.dumpObjects(entities, sb);
+            sb.append("],");
+            super.toString(sb);
+            sb.append("}");
+
+            return sb;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+
+            AtlasEntity.AtlasEntitiesWithExtInfo that = (AtlasEntity.AtlasEntitiesWithExtInfo) o;
+            return Objects.equals(entities, that.entities);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(super.hashCode(), entities);
+        }
+    }
 }
+

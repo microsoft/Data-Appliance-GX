@@ -7,9 +7,7 @@
 package com.microsoft.dagx.catalog.atlas.dto;
 
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 
 public class Functions {
 
@@ -45,5 +43,29 @@ public class Functions {
                                                                  AtlasStructDef.AtlasAttributeDef... attrDefs) {
         return new AtlasRelationshipDef(name, description, version, relationshipCategory, propagateTags,
                 endDef1, endDef2, Arrays.asList(attrDefs));
+    }
+
+    public static <T> boolean isEmpty(Collection<T> collection) {
+        return collection == null || collection.isEmpty();
+    }
+
+    public static <T> boolean isNotEmpty(Collection<T> collection) {
+        return !isEmpty(collection);
+    }
+
+    public static <K, V> boolean isNotEmpty(Map<K, V> map) {
+        return !isEmpty(map);
+    }
+
+    private static <V, K> boolean isEmpty(Map<K, V> map) {
+        return map == null || map.isEmpty();
+    }
+
+    public static boolean equals(String str1, String str2) {
+        return Objects.equals(str1, str2);
+    }
+
+    public static boolean equalsIgnoreCase(String str1, String str2) {
+        return str1 == null ? str2 == null : str1.equalsIgnoreCase(str2);
     }
 }

@@ -12,6 +12,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -19,9 +22,12 @@ import java.util.List;
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.NONE;
 import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.PUBLIC_ONLY;
 
+
 @JsonAutoDetect(getterVisibility = PUBLIC_ONLY, setterVisibility = PUBLIC_ONLY, fieldVisibility = NONE)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@XmlRootElement
+@XmlAccessorType(XmlAccessType.PROPERTY)
 public class AtlasTypesDef {
     private List<AtlasEnumDef> enumDefs;
     private List<AtlasStructDef> structDefs;
@@ -37,6 +43,51 @@ public class AtlasTypesDef {
         entityDefs = new ArrayList<>();
         relationshipDefs = new ArrayList<>();
         businessMetadataDefs = new ArrayList<>();
+    }
+
+    /**
+     * tolerate typeDef creations that do not contain relationshipDefs, so that
+     * the older calls will still work.
+     *
+     * @param enumDefs
+     * @param structDefs
+     * @param classificationDefs
+     * @param entityDefs
+     */
+    public AtlasTypesDef(List<AtlasEnumDef> enumDefs, List<AtlasStructDef> structDefs,
+                         List<AtlasClassificationDef> classificationDefs, List<AtlasEntityDef> entityDefs) {
+        this(enumDefs, structDefs, classificationDefs, entityDefs, new ArrayList<>(), new ArrayList<>());
+    }
+
+    /**
+     * Create the TypesDef. This created definitions for each of the types.
+     *
+     * @param enumDefs
+     * @param structDefs
+     * @param classificationDefs
+     * @param entityDefs
+     * @param relationshipDefs
+     */
+    public AtlasTypesDef(List<AtlasEnumDef> enumDefs,
+                         List<AtlasStructDef> structDefs,
+                         List<AtlasClassificationDef> classificationDefs,
+                         List<AtlasEntityDef> entityDefs,
+                         List<AtlasRelationshipDef> relationshipDefs) {
+        this(enumDefs, structDefs, classificationDefs, entityDefs, relationshipDefs, new ArrayList<>());
+    }
+
+    public AtlasTypesDef(List<AtlasEnumDef> enumDefs,
+                         List<AtlasStructDef> structDefs,
+                         List<AtlasClassificationDef> classificationDefs,
+                         List<AtlasEntityDef> entityDefs,
+                         List<AtlasRelationshipDef> relationshipDefs,
+                         List<AtlasBusinessMetadataDef> businessMetadataDefs) {
+        this.enumDefs = enumDefs;
+        this.structDefs = structDefs;
+        this.classificationDefs = classificationDefs;
+        this.entityDefs = entityDefs;
+        this.relationshipDefs = relationshipDefs;
+        this.businessMetadataDefs = businessMetadataDefs;
     }
 
     public List<AtlasEnumDef> getEnumDefs() {
@@ -112,7 +163,7 @@ public class AtlasTypesDef {
     }
 
     private <T extends AtlasBaseTypeDef> boolean hasTypeDef(Collection<T> typeDefs, String name) {
-        if (!typeDefs.isEmpty()) {
+        if (Functions.isNotEmpty(typeDefs)) {
             for (T typeDef : typeDefs) {
                 if (typeDef.getName().equals(name)) {
                     return true;
@@ -125,12 +176,12 @@ public class AtlasTypesDef {
 
     @JsonIgnore
     public boolean isEmpty() {
-        return enumDefs.isEmpty() &&
-                structDefs.isEmpty() &&
-                classificationDefs.isEmpty() &&
-                entityDefs.isEmpty() &&
-                relationshipDefs.isEmpty() &&
-                businessMetadataDefs.isEmpty();
+        return Functions.isEmpty(enumDefs) &&
+                Functions.isEmpty(structDefs) &&
+                Functions.isEmpty(classificationDefs) &&
+                Functions.isEmpty(entityDefs) &&
+                Functions.isEmpty(relationshipDefs) &&
+                Functions.isEmpty(businessMetadataDefs);
     }
 
     public void clear() {

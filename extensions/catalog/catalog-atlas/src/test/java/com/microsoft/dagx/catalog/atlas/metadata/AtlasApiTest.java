@@ -483,20 +483,19 @@ public class AtlasApiTest {
     }
 
     private AtlasTypesDef createOrUpdate(AtlasTypesDef typesDef) {
-//        try {
-//            return atlasClient.createAtlasTypeDefs(typesDef);
-//        } catch (AtlasServiceException e) {
-//            System.out.print("Error creating types, attempting update: " + e.getMessage());
-//            try {
-//                AtlasTypesDef atlasTypesDef = atlasClient.updateAtlasTypeDefs(typesDef);
-//                System.out.println(" --> Update successful!");
-//                return atlasTypesDef;
-//            } catch (AtlasServiceException atlasServiceException) {
-//                System.out.println("\nError updating types: " + e.getMessage());
-//                return null;
-//            }
-//        }
-        return null;
+        try {
+            return ((AtlasApiImpl) atlasApi).createTypesDef(typesDef);
+        } catch (DagxException e) {
+            System.out.print("Error creating types, attempting update: " + e.getMessage());
+            try {
+                AtlasTypesDef atlasTypesDef = ((AtlasApiImpl) atlasApi).updateTypesDef(typesDef);
+                System.out.println(" --> Update successful!");
+                return atlasTypesDef;
+            } catch (DagxException dagxException) {
+                System.out.println("\nError updating types: " + e.getMessage());
+                return null;
+            }
+        }
     }
 
 }

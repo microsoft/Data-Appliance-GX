@@ -103,27 +103,14 @@ public class AtlasApiImpl implements AtlasApi {
         var typesDef = new AtlasTypesDef();
         typesDef.setEntityDefs(Collections.singletonList(atlasEntityDef));
 
-        var url = atlasBaseUrl + API_PREFIX + TYPEDEFS_API;
-        var body = RequestBody.create(typeManager.writeValueAsString(typesDef), JSON);
-        var rqBuilder = new Request.Builder().url(url);
         if (existsType(typeName)) {
-            rqBuilder.put(body);
+            return updateTypesDef(typesDef);
         } else {
-            rqBuilder.post(body);
+            return createTypesDef(typesDef);
         }
-        var rq = rqBuilder.build();
 
-        try (var response = httpClient.newCall(rq).execute()) {
-            if (!response.isSuccessful()) {
-                throw new DagxException(response.body() != null ? Objects.requireNonNull(response.body()).string() : "creating custom types failed");
-            } else {
-                var json = Objects.requireNonNull(response.body()).string();
-                return typeManager.readValue(json, AtlasTypesDef.class);
-            }
-        } catch (IOException e) {
-            throw new DagxException(e);
-        }
     }
+
 
     @Override
     public void deleteCustomType(String typeName) {
@@ -162,25 +149,20 @@ public class AtlasApiImpl implements AtlasApi {
 
     @Override
     public AtlasTypesDef createRelationshipType(String name, String description, int relationshipCategory, RelationshipSchema.EndpointDefinition startDefinition, RelationshipSchema.EndpointDefinition endDefinition) {
-//        name = sanitize(name);
-//        var end1 = new AtlasRelationshipEndDef(sanitize(startDefinition.getTypeName()), sanitize(startDefinition.getName()), cardinalityFromInteger(startDefinition.getCardinality()));
-//        var end2 = new AtlasRelationshipEndDef(sanitize(endDefinition.getTypeName()), sanitize(endDefinition.getName()), cardinalityFromInteger(endDefinition.getCardinality()));
-//
-//        var relationshipDef = createRelationshipTypeDef(name, description, "1.0", AtlasRelationshipDef.RelationshipCategory.ASSOCIATION, AtlasRelationshipDef.PropagateTags.NONE, end1, end2);
-//
-//        var typesDef = new AtlasTypesDef();
-//        typesDef.setRelationshipDefs(Collections.singletonList(relationshipDef));
-//
-//        try {
-//            if (existsType(name)) {
-//                return atlasClient.updateAtlasTypeDefs(typesDef);
-//            } else {
-//                return atlasClient.createAtlasTypeDefs(typesDef);
-//            }
-//        } catch (AtlasServiceException e) {
-//            throw new DagxException(e);
-//        }
-        return null;
+        name = sanitize(name);
+        var end1 = new AtlasRelationshipEndDef(sanitize(startDefinition.getTypeName()), sanitize(startDefinition.getName()), cardinalityFromInteger(startDefinition.getCardinality()));
+        var end2 = new AtlasRelationshipEndDef(sanitize(endDefinition.getTypeName()), sanitize(endDefinition.getName()), cardinalityFromInteger(endDefinition.getCardinality()));
+
+        var relationshipDef = createRelationshipTypeDef(name, description, "1.0", AtlasRelationshipDef.RelationshipCategory.ASSOCIATION, AtlasRelationshipDef.PropagateTags.NONE, end1, end2);
+
+        var typesDef = new AtlasTypesDef();
+        typesDef.setRelationshipDefs(Collections.singletonList(relationshipDef));
+
+        if (existsType(name)) {
+            return updateTypesDef(typesDef);
+        } else {
+            return createTypesDef(typesDef);
+        }
     }
 
     private AtlasStructDef.AtlasAttributeDef.Cardinality cardinalityFromInteger(int cardinality) {
@@ -189,14 +171,22 @@ public class AtlasApiImpl implements AtlasApi {
 
     @Override
     public AtlasRelationship createRelation(String sourceEntityGuid, String targetEntityGuid, String name) {
-//        name = sanitize(name);
-//        AtlasRelationship relationship = new AtlasRelationship(name, new AtlasObjectId(sourceEntityGuid), new AtlasObjectId(targetEntityGuid));
-//        try {
-//            return atlasClient.createRelationship(relationship);
-//        } catch (AtlasServiceException e) {
-//            throw new DagxException(e);
-//        }
-        return null;
+        name = sanitize(name);
+        AtlasRelationship relationship = new AtlasRelationship(name, new AtlasObjectId(sourceEntityGuid), new AtlasObjectId(targetEntityGuid));
+        var url = atlasBaseUrl + API_PREFIX + "/relationship";
+
+        var rq = new Request.Builder().url(url).post(RequestBody.create(typeManager.writeValueAsString(relationship), JSON)).build();
+
+        try (var response = httpClient.newCall(rq).execute()) {
+            if (!response.isSuccessful()) {
+                throw new DagxException(response.body() != null ? Objects.requireNonNull(response.body()).string() : "deleting type failed");
+            }
+
+            var json = Objects.requireNonNull(response.body()).string();
+            return typeManager.readValue(json, AtlasRelationship.class);
+        } catch (IOException e) {
+            throw new DagxException(e);
+        }
     }
 
     @Override
@@ -336,5 +326,41 @@ public class AtlasApiImpl implements AtlasApi {
         return input.replace(":", "_");
     }
 
+    AtlasTypesDef createTypesDef(AtlasTypesDef atlasTypesDef) {
+        var url = atlasBaseUrl + API_PREFIX + TYPEDEFS_API;
+        var body = RequestBody.create(typeManager.writeValueAsString(atlasTypesDef), JSON);
+        var rqBuilder = new Request.Builder().url(url);
+        rqBuilder.post(body);
+        var rq = rqBuilder.build();
 
+        try (var response = httpClient.newCall(rq).execute()) {
+            if (!response.isSuccessful()) {
+                throw new DagxException(response.body() != null ? Objects.requireNonNull(response.body()).string() : "creating custom types failed");
+            } else {
+                var json = Objects.requireNonNull(response.body()).string();
+                return typeManager.readValue(json, AtlasTypesDef.class);
+            }
+        } catch (IOException e) {
+            throw new DagxException(e);
+        }
+    }
+
+    AtlasTypesDef updateTypesDef(AtlasTypesDef atlasTypesDef) {
+        var url = atlasBaseUrl + API_PREFIX + TYPEDEFS_API;
+        var body = RequestBody.create(typeManager.writeValueAsString(atlasTypesDef), JSON);
+        var rqBuilder = new Request.Builder().url(url);
+        rqBuilder.put(body);
+        var rq = rqBuilder.build();
+
+        try (var response = httpClient.newCall(rq).execute()) {
+            if (!response.isSuccessful()) {
+                throw new DagxException(response.body() != null ? Objects.requireNonNull(response.body()).string() : "creating custom types failed");
+            } else {
+                var json = Objects.requireNonNull(response.body()).string();
+                return typeManager.readValue(json, AtlasTypesDef.class);
+            }
+        } catch (IOException e) {
+            throw new DagxException(e);
+        }
+    }
 }

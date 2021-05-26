@@ -10,6 +10,9 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.*;
 
@@ -19,6 +22,8 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.PUBLIC_
 @JsonAutoDetect(getterVisibility = PUBLIC_ONLY, setterVisibility = PUBLIC_ONLY, fieldVisibility = NONE)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
+@XmlRootElement
+@XmlAccessorType(XmlAccessType.PROPERTY)
 public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializable {
     public static final String OPTION_DISPLAY_TEXT_ATTRIBUTE = "displayTextAttribute";
     private static final long serialVersionUID = 1L;
@@ -30,7 +35,7 @@ public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializab
 
     // this is a read-only field, any value provided during create & update operation is ignored
     // the value of this field is derived from all the relationshipDefs this entityType is referenced in
-    private List<AtlasRelationshipAttributeDef> relationshipAttributeDefs;
+    private List<AtlasEntityDef.AtlasRelationshipAttributeDef> relationshipAttributeDefs;
 
     // this is a read-only field, any value provided during create & update operation is ignored
     // the value of this field is derived from all the businessMetadataDefs this entityType is referenced in
@@ -91,8 +96,24 @@ public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializab
         setSuperTypes(superTypes);
     }
 
+
+    public AtlasEntityDef(AtlasEntityDef other) {
+        super(other);
+
+        if (other != null) {
+            setSuperTypes(other.getSuperTypes());
+            setSubTypes(other.getSubTypes());
+            setRelationshipAttributeDefs(other.getRelationshipAttributeDefs());
+            setBusinessAttributeDefs(other.getBusinessAttributeDefs());
+        }
+    }
+
     private static boolean hasSuperType(Set<String> superTypes, String typeName) {
         return superTypes != null && typeName != null && superTypes.contains(typeName);
+    }
+
+    public Set<String> getSuperTypes() {
+        return superTypes;
     }
 
     public void setSuperTypes(Set<String> superTypes) {
@@ -100,7 +121,7 @@ public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializab
             return;
         }
 
-        if (superTypes == null || superTypes.isEmpty()) {
+        if (Functions.isEmpty(superTypes)) {
             this.superTypes = new HashSet<>();
         } else {
             this.superTypes = new HashSet<>(superTypes);
@@ -115,11 +136,11 @@ public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializab
         this.subTypes = subTypes;
     }
 
-    public List<AtlasRelationshipAttributeDef> getRelationshipAttributeDefs() {
+    public List<AtlasEntityDef.AtlasRelationshipAttributeDef> getRelationshipAttributeDefs() {
         return relationshipAttributeDefs;
     }
 
-    public void setRelationshipAttributeDefs(List<AtlasRelationshipAttributeDef> relationshipAttributeDefs) {
+    public void setRelationshipAttributeDefs(List<AtlasEntityDef.AtlasRelationshipAttributeDef> relationshipAttributeDefs) {
         this.relationshipAttributeDefs = relationshipAttributeDefs;
     }
 
@@ -171,9 +192,9 @@ public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializab
         dumpObjects(superTypes, sb);
         sb.append("]");
         sb.append(", relationshipAttributeDefs=[");
-        if (!relationshipAttributeDefs.isEmpty()) {
+        if (Functions.isNotEmpty(relationshipAttributeDefs)) {
             int i = 0;
-            for (AtlasRelationshipAttributeDef attributeDef : relationshipAttributeDefs) {
+            for (AtlasEntityDef.AtlasRelationshipAttributeDef attributeDef : relationshipAttributeDefs) {
                 if (i > 0) {
                     sb.append(", ");
                 }
@@ -185,7 +206,7 @@ public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializab
         }
         sb.append(']');
         sb.append(", businessAttributeDefs={");
-        if (!businessAttributeDefs.isEmpty()) {
+        if (Functions.isNotEmpty(businessAttributeDefs)) {
             int nsIdx = 0;
 
             for (Map.Entry<String, List<AtlasAttributeDef>> entry : businessAttributeDefs.entrySet()) {
@@ -251,6 +272,8 @@ public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializab
     @JsonAutoDetect(getterVisibility = PUBLIC_ONLY, setterVisibility = PUBLIC_ONLY, fieldVisibility = NONE)
     @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
+    @XmlRootElement
+    @XmlAccessorType(XmlAccessType.PROPERTY)
     public static class AtlasRelationshipAttributeDef extends AtlasAttributeDef implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -308,7 +331,7 @@ public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializab
                 return false;
             }
 
-            AtlasRelationshipAttributeDef that = (AtlasRelationshipAttributeDef) o;
+            AtlasEntityDef.AtlasRelationshipAttributeDef that = (AtlasEntityDef.AtlasRelationshipAttributeDef) o;
 
             return super.equals(that) &&
                     isLegacyAttribute == that.isLegacyAttribute &&
@@ -325,6 +348,4 @@ public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializab
             return toString(new StringBuilder()).toString();
         }
     }
-
-
 }
