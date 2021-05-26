@@ -123,7 +123,7 @@ public class AtlasDataSeeder {
 
     public void deleteClassifications(String... classificationNames) {
         if (classificationNames != null) {
-            atlasApi.deleteClassification(classificationNames);
+            Arrays.stream(classificationNames).forEach(atlasApi::deleteClassification);
         }
     }
 
