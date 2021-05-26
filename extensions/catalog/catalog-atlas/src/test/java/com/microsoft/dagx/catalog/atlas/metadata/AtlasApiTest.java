@@ -5,13 +5,13 @@
 
 package com.microsoft.dagx.catalog.atlas.metadata;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.microsoft.dagx.catalog.atlas.dto.*;
 import com.microsoft.dagx.schema.SchemaAttribute;
 import com.microsoft.dagx.spi.DagxException;
 import com.microsoft.dagx.spi.types.TypeManager;
 import okhttp3.OkHttpClient;
 import org.assertj.core.api.ThrowableAssert;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;

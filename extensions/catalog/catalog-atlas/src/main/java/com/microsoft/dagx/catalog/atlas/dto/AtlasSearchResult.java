@@ -9,13 +9,7 @@ package com.microsoft.dagx.catalog.atlas.dto;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.apache.atlas.model.instance.AtlasEntityHeader;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.*;
 
@@ -30,10 +24,10 @@ public class AtlasSearchResult implements Serializable {
     private String queryText;
     private String type;
     private String classification;
-    private List<org.apache.atlas.model.instance.AtlasEntityHeader> entities;
+    private List<AtlasEntityHeader> entities;
     private AtlasSearchResult.AttributeSearchResult attributes;
     private List<AtlasSearchResult.AtlasFullTextResult> fullTextResult;
-    private Map<String, org.apache.atlas.model.instance.AtlasEntityHeader> referredEntities;
+    private Map<String, AtlasEntityHeader> referredEntities;
     private long approximateCount = -1;
 
     public AtlasSearchResult() {
@@ -86,11 +80,11 @@ public class AtlasSearchResult implements Serializable {
         this.classification = classification;
     }
 
-    public List<org.apache.atlas.model.instance.AtlasEntityHeader> getEntities() {
+    public List<AtlasEntityHeader> getEntities() {
         return entities;
     }
 
-    public void setEntities(List<org.apache.atlas.model.instance.AtlasEntityHeader> entities) {
+    public void setEntities(List<AtlasEntityHeader> entities) {
         this.entities = entities;
     }
 
@@ -110,11 +104,11 @@ public class AtlasSearchResult implements Serializable {
         this.fullTextResult = fullTextResult;
     }
 
-    public Map<String, org.apache.atlas.model.instance.AtlasEntityHeader> getReferredEntities() {
+    public Map<String, AtlasEntityHeader> getReferredEntities() {
         return referredEntities;
     }
 
-    public void setReferredEntities(Map<String, org.apache.atlas.model.instance.AtlasEntityHeader> referredEntities) {
+    public void setReferredEntities(Map<String, AtlasEntityHeader> referredEntities) {
         this.referredEntities = referredEntities;
     }
 
@@ -150,7 +144,7 @@ public class AtlasSearchResult implements Serializable {
                 Objects.equals(referredEntities, that.referredEntities);
     }
 
-    public void addEntity(org.apache.atlas.model.instance.AtlasEntityHeader newEntity) {
+    public void addEntity(AtlasEntityHeader newEntity) {
         if (entities == null) {
             entities = new ArrayList<>();
         }
@@ -163,14 +157,14 @@ public class AtlasSearchResult implements Serializable {
         }
     }
 
-    public void removeEntity(org.apache.atlas.model.instance.AtlasEntityHeader entity) {
-        List<org.apache.atlas.model.instance.AtlasEntityHeader> entities = this.entities;
+    public void removeEntity(AtlasEntityHeader entity) {
+        List<AtlasEntityHeader> entities = this.entities;
 
-        if (CollectionUtils.isNotEmpty(entities)) {
-            Iterator<org.apache.atlas.model.instance.AtlasEntityHeader> iter = entities.iterator();
+        if (entities != null && !entities.isEmpty()) {
+            Iterator<AtlasEntityHeader> iter = entities.iterator();
             while (iter.hasNext()) {
-                org.apache.atlas.model.instance.AtlasEntityHeader currEntity = iter.next();
-                if (StringUtils.equals(currEntity.getGuid(), entity.getGuid())) {
+                AtlasEntityHeader currEntity = iter.next();
+                if (currEntity.getGuid().equals(entity.getGuid())) {
                     iter.remove();
                 }
             }
@@ -197,8 +191,6 @@ public class AtlasSearchResult implements Serializable {
     @JsonAutoDetect(getterVisibility = PUBLIC_ONLY, setterVisibility = PUBLIC_ONLY, fieldVisibility = NONE)
     @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @XmlRootElement
-    @XmlAccessorType(XmlAccessType.PROPERTY)
     public static class AttributeSearchResult {
         private List<String> name;
         private List<List<Object>> values;
@@ -257,21 +249,19 @@ public class AtlasSearchResult implements Serializable {
     @JsonAutoDetect(getterVisibility = PUBLIC_ONLY, setterVisibility = PUBLIC_ONLY, fieldVisibility = NONE)
     @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @XmlRootElement
-    @XmlAccessorType(XmlAccessType.PROPERTY)
     public static class AtlasFullTextResult {
-        org.apache.atlas.model.instance.AtlasEntityHeader entity;
+        AtlasEntityHeader entity;
         Double score;
 
         public AtlasFullTextResult() {
         }
 
-        public AtlasFullTextResult(org.apache.atlas.model.instance.AtlasEntityHeader entity, Double score) {
+        public AtlasFullTextResult(AtlasEntityHeader entity, Double score) {
             this.entity = entity;
             this.score = score;
         }
 
-        public org.apache.atlas.model.instance.AtlasEntityHeader getEntity() {
+        public AtlasEntityHeader getEntity() {
             return entity;
         }
 
