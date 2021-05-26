@@ -433,10 +433,10 @@ public class AtlasEntity extends AtlasStruct implements Serializable {
         dumpObjects(relationshipAttributes, sb);
         sb.append("]");
         sb.append(", classifications=[");
-        org.apache.atlas.model.typedef.AtlasBaseTypeDef.dumpObjects(classifications, sb);
+        AtlasBaseTypeDef.dumpObjects(classifications, sb);
         sb.append(']');
         sb.append(", meanings=[");
-        org.apache.atlas.model.typedef.AtlasBaseTypeDef.dumpObjects(meanings, sb);
+        AtlasBaseTypeDef.dumpObjects(meanings, sb);
         sb.append(']');
         sb.append(", customAttributes=[");
         dumpObjects(customAttributes, sb);
@@ -610,7 +610,7 @@ public class AtlasEntity extends AtlasStruct implements Serializable {
 
             sb.append("AtlasEntityExtInfo{");
             sb.append("referredEntities={");
-            org.apache.atlas.model.typedef.AtlasBaseTypeDef.dumpObjects(referredEntities, sb);
+            AtlasBaseTypeDef.dumpObjects(referredEntities, sb);
             sb.append("}");
             sb.append("}");
 

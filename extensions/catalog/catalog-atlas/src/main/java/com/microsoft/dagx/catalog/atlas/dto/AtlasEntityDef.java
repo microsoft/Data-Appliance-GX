@@ -10,9 +10,6 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import javax.xml.bind.annotation.XmlAccessType;
-import javax.xml.bind.annotation.XmlAccessorType;
-import javax.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
 import java.util.*;
 
@@ -22,8 +19,6 @@ import static com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility.PUBLIC_
 @JsonAutoDetect(getterVisibility = PUBLIC_ONLY, setterVisibility = PUBLIC_ONLY, fieldVisibility = NONE)
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-@XmlRootElement
-@XmlAccessorType(XmlAccessType.PROPERTY)
 public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializable {
     public static final String OPTION_DISPLAY_TEXT_ATTRIBUTE = "displayTextAttribute";
     private static final long serialVersionUID = 1L;
@@ -272,8 +267,6 @@ public class AtlasEntityDef extends AtlasStructDef implements java.io.Serializab
     @JsonAutoDetect(getterVisibility = PUBLIC_ONLY, setterVisibility = PUBLIC_ONLY, fieldVisibility = NONE)
     @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @XmlRootElement
-    @XmlAccessorType(XmlAccessType.PROPERTY)
     public static class AtlasRelationshipAttributeDef extends AtlasAttributeDef implements Serializable {
         private static final long serialVersionUID = 1L;
 
