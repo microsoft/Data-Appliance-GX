@@ -11,7 +11,6 @@ import net.jodah.failsafe.RetryPolicy;
 import org.apache.nifi.util.MockFlowFile;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,13 +33,7 @@ class FetchS3ObjectTest extends AbstractS3Test {
 
     @BeforeEach
     void setup() {
-        createBucket(bucketName, REGION);
         retryPolicy = new RetryPolicy<>().withBackoff(500, 5000, ChronoUnit.MILLIS).withMaxRetries(5).handle(AssertionError.class);
-    }
-
-    @AfterEach
-    void cleanup() {
-        deleteBucket(bucketName, client);
     }
 
     @Test

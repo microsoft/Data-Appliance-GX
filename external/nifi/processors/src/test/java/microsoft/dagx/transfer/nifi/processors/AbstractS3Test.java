@@ -14,6 +14,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.*;
 import org.jetbrains.annotations.NotNull;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 import java.io.File;
@@ -38,7 +39,12 @@ public class AbstractS3Test {
         bucketName = "test-bucket-" + System.currentTimeMillis() + "-" + REGION;
         credentials = getCredentials();
         client = AmazonS3ClientBuilder.standard().withCredentials(new AWSStaticCredentialsProvider(credentials)).withRegion(REGION).build();
+        createBucket(bucketName);
+    }
 
+    @AfterEach
+    void cleanup() {
+        deleteBucket(bucketName);
     }
 
     protected @NotNull AWSCredentials getCredentials() {
@@ -48,14 +54,14 @@ public class AbstractS3Test {
         return new BasicAWSCredentials(accessKeyId, secretKey);
     }
 
-    protected void createBucket(String bucketName, String region) {
+    protected void createBucket(String bucketName) {
         if (client.doesBucketExistV2(bucketName)) {
             fail("Bucket " + bucketName + " exists. Choose a different bucket name to continue test");
         }
 
-        CreateBucketRequest request = region.contains("east")
+        CreateBucketRequest request = AbstractS3Test.REGION.contains("east")
                 ? new CreateBucketRequest(bucketName) // See https://github.com/boto/boto3/issues/125
-                : new CreateBucketRequest(bucketName, region);
+                : new CreateBucketRequest(bucketName, AbstractS3Test.REGION);
         client.createBucket(request);
 
         if (!client.doesBucketExistV2(bucketName)) {
@@ -63,7 +69,7 @@ public class AbstractS3Test {
         }
     }
 
-    protected void deleteBucket(String bucketName, AmazonS3 client) {
+    protected void deleteBucket(String bucketName) {
         // Empty the bucket before deleting it, otherwise the AWS S3 API fails
         try {
             if (client == null) {

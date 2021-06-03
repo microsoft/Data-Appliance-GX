@@ -10,8 +10,6 @@ import com.amazonaws.services.s3.model.PutObjectResult;
 import com.amazonaws.services.s3.model.S3Object;
 import org.apache.nifi.util.TestRunner;
 import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
@@ -24,16 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 public class PutS3ObjectTest extends AbstractS3Test {
-
-    @BeforeEach
-    void setup() {
-        createBucket(bucketName, REGION);
-    }
-
-    @AfterEach
-    void cleanup() {
-        deleteBucket(bucketName, client);
-    }
 
     @Test
     void upload() throws IOException {
