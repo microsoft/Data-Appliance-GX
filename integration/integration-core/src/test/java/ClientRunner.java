@@ -26,7 +26,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -51,7 +50,7 @@ public class ClientRunner {
     private CountDownLatch latch;
 
     @Test
-//    @Disabled
+    @Disabled
     void processClientRequest_toAws(RemoteMessageDispatcherRegistry dispatcherRegistry, TransferProcessManager processManager, TransferProcessObservable observable, TransferProcessStore store) throws Exception {
 
         var query = QueryRequest.Builder.newInstance()
@@ -64,7 +63,6 @@ public class ClientRunner {
         CompletableFuture<List<String>> future = cast(dispatcherRegistry.send(List.class, query, () -> null));
 
         var artifacts = future.get();
-        artifacts = Collections.singletonList(artifacts.get(0));
         latch = new CountDownLatch(artifacts.size());
         for (String artifact : artifacts) {
             System.out.println("processing artifact " + artifact);
@@ -93,9 +91,9 @@ public class ClientRunner {
         }
 
         // Initiate a request as a U.S.-based connector for an EU-restricted artifact (will be denied)
-        var usRequest = createRequestAws("us-request", EU_ARTIFACT);
-
-        processManager.initiateClientRequest(usRequest);
+//        var usRequest = createRequestAws("us-request", EU_ARTIFACT);
+//
+//        processManager.initiateClientRequest(usRequest);
 
 
         assertThat(latch.await(5, TimeUnit.MINUTES)).isTrue();
@@ -103,7 +101,7 @@ public class ClientRunner {
 
 
     @Test
-//    @Disabled
+    @Disabled
     void processClientRequest_toAzureStorage(RemoteMessageDispatcherRegistry dispatcherRegistry, TransferProcessManager processManager, TransferProcessObservable observable, TransferProcessStore store) throws Exception {
         var query = QueryRequest.Builder.newInstance()
                 .connectorAddress(PROVIDER_CONNECTOR)
@@ -118,7 +116,6 @@ public class ClientRunner {
 
         assertThat(artifacts).describedAs("Should have returned artifacts!").isNotEmpty();
 
-        artifacts = Collections.singletonList(artifacts.get(0));
         latch = new CountDownLatch(artifacts.size());
 
         for (String artifact : artifacts) {
@@ -147,9 +144,9 @@ public class ClientRunner {
         }
 
         // Initiate a request as a U.S.-based connector for an EU-restricted artifact (will be denied)
-        var usRequest = createRequestAzure("us-request", EU_ARTIFACT);
-
-        processManager.initiateClientRequest(usRequest);
+//        var usRequest = createRequestAzure("us-request", EU_ARTIFACT);
+//
+//        processManager.initiateClientRequest(usRequest);
 
         assertThat(latch.await(5, TimeUnit.MINUTES)).isTrue();
     }
@@ -184,7 +181,7 @@ public class ClientRunner {
                 .dataDestination(DataAddress.Builder.newInstance()
                         .type(AzureBlobStoreSchema.TYPE)
                         .property(AzureBlobStoreSchema.ACCOUNT_NAME, "dagxtfblob")
-                        .property(AzureBlobStoreSchema.CONTAINER_NAME, "temp-dest-container")
+                        .property(AzureBlobStoreSchema.CONTAINER_NAME, "temp-dest-container-" + UUID.randomUUID())
                         .build())
                 .destinationType(AzureBlobStoreSchema.TYPE)
                 .build();
