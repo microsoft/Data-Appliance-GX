@@ -193,7 +193,7 @@ public class TransferProcess {
      * Indicates that the transfer process is completed and that it should be deprovisioned
      */
     public void transitionDeprovisionRequested() {
-        transition(TransferProcessStates.DEPROVISIONING_REQ, TransferProcessStates.COMPLETED, TransferProcessStates.ERROR, TransferProcessStates.DEPROVISIONING_REQ);
+        transition(TransferProcessStates.DEPROVISIONING_REQ, TransferProcessStates.COMPLETED, TransferProcessStates.DEPROVISIONING_REQ);
     }
 
 
