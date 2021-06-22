@@ -15,7 +15,7 @@ import com.microsoft.dagx.spi.types.domain.transfer.TransferProcess;
 public class TransferProcessDocument {
 
     @JsonUnwrapped
-    public TransferProcess wrappedInstance;
+    private TransferProcess wrappedInstance;
 
     @JsonProperty
     private String partitionKey;
@@ -29,8 +29,8 @@ public class TransferProcessDocument {
         this.partitionKey = partitionKey;
     }
 
-    public static TransferProcessDocument from(TransferProcess process, String partitionKey) {
-        return new TransferProcessDocument(process, partitionKey);
+    public static TransferProcessDocument from(TransferProcess process) {
+        return new TransferProcessDocument(process, process.getId());
     }
 
 
@@ -38,4 +38,7 @@ public class TransferProcessDocument {
         return partitionKey;
     }
 
+    public TransferProcess getWrappedInstance() {
+        return wrappedInstance;
+    }
 }

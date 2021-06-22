@@ -7,13 +7,11 @@
 package com.microsoft.dagx.transfer.store.cosmos.model;
 
 import com.microsoft.dagx.spi.types.TypeManager;
-import com.microsoft.dagx.spi.types.domain.transfer.DataAddress;
-import com.microsoft.dagx.spi.types.domain.transfer.DataRequest;
-import com.microsoft.dagx.spi.types.domain.transfer.ResourceManifest;
 import com.microsoft.dagx.spi.types.domain.transfer.TransferProcess;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import static com.microsoft.dagx.transfer.store.cosmos.TestHelper.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class TransferProcessDocumentSerializationTest {
@@ -28,19 +26,15 @@ class TransferProcessDocumentSerializationTest {
 
     @Test
     void testSerialization() {
-        var transferProcess = TransferProcess.Builder.newInstance()
-                .id("test-process")
-                .type(TransferProcess.Type.CLIENT)
-                .dataRequest(createDataRequest())
-                .resourceManifest(createManifest())
-                .build();
 
-        var document = TransferProcessDocument.from(transferProcess, "test-part-key");
+        var transferProcess = createTransferProcess();
+
+        var document = TransferProcessDocument.from(transferProcess);
 
         final String s = typeManager.writeValueAsString(document);
 
         assertThat(s).isNotNull();
-        assertThat(s).contains("\"partitionKey\":\"test-part-key\"");
+        assertThat(s).contains("\"partitionKey\":\"test-process\""); //should use the process id as partition key
         assertThat(s).contains("\"id\":\"test-process\"");
         assertThat(s).contains("\"id\":\"test-process\"");
         assertThat(s).contains("\"type\":\"CLIENT\"");
@@ -60,7 +54,7 @@ class TransferProcessDocumentSerializationTest {
                 .resourceManifest(createManifest())
                 .build();
 
-        var document = TransferProcessDocument.from(transferProcess, "test-part-key");
+        var document = TransferProcessDocument.from(transferProcess);
         final String json = typeManager.writeValueAsString(document);
 
         Object transferProcessDeserialized = typeManager.readValue(json, TransferProcessDocument.class);
@@ -68,18 +62,5 @@ class TransferProcessDocumentSerializationTest {
 
     }
 
-    private ResourceManifest createManifest() {
-        return ResourceManifest.Builder.newInstance()
-                .build();
-    }
 
-    private DataRequest createDataRequest() {
-        return DataRequest.Builder.newInstance()
-                .dataDestination(DataAddress.Builder.newInstance()
-                        .type("Test Address Type")
-                        .keyName("Test Key Name")
-                        .build())
-                .processId("test-process-id")
-                .build();
-    }
 }

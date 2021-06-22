@@ -6,9 +6,12 @@
 
 package com.microsoft.dagx.transfer.store.cosmos;
 
-import com.azure.core.credential.AzureKeyCredential;
 import com.azure.cosmos.ConsistencyLevel;
+import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
+import com.azure.cosmos.CosmosDatabase;
+import com.azure.cosmos.models.CosmosContainerResponse;
+import com.azure.cosmos.models.CosmosDatabaseResponse;
 import com.microsoft.dagx.common.string.StringUtils;
 import com.microsoft.dagx.spi.DagxException;
 import com.microsoft.dagx.spi.monitor.Monitor;
@@ -51,14 +54,17 @@ public class CosmosTransferProcessStoreExtension implements ServiceExtension {
         preferredRegions.add("West US");
         var client = new CosmosClientBuilder()
                 .endpoint(host)
-                .credential(new AzureKeyCredential(accountKey))
+                .key(accountKey)
                 .preferredRegions(preferredRegions)
-                .userAgentSuffix("CosmosDBJavaQuickstart")
                 .consistencyLevel(ConsistencyLevel.SESSION)
                 .buildClient();
 
 
-        context.registerService(TransferProcessStore.class, new CosmosTransferProcessStore(client, cosmosDbName, "dagx-transferprocess"));
+        var database = getDatabase(client, cosmosDbName);
+        final CosmosContainerResponse response = database.createContainerIfNotExists("dagx-transferprocess", "/partitionKey");
+        var container = database.getContainer(response.getProperties().getId());
+
+        context.registerService(TransferProcessStore.class, new CosmosTransferProcessStore(container));
 
         monitor = context.getMonitor();
         monitor.info("Initialized Cosmos Memory Transfer Process Store extension");
@@ -75,5 +81,9 @@ public class CosmosTransferProcessStoreExtension implements ServiceExtension {
         monitor.info("Shutdown Initialized Cosmos Transfer Process Store extension");
     }
 
+    private CosmosDatabase getDatabase(CosmosClient client, String databaseName) {
+        CosmosDatabaseResponse databaseResponse = client.createDatabaseIfNotExists(databaseName);
+        return client.getDatabase(databaseResponse.getProperties().getId());
+    }
 }
 
