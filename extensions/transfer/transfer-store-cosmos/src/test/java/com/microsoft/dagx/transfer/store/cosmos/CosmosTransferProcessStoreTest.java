@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,6 +35,7 @@ import static com.microsoft.dagx.transfer.store.cosmos.TestHelper.createTransfer
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 class CosmosTransferProcessStoreTest {
 
     private final static String accountName = "cosmos-itest";
@@ -46,9 +48,8 @@ class CosmosTransferProcessStoreTest {
     @BeforeAll
     static void prepareCosmosClient() {
 
-        var key = propOrEnv("COSMOS_KEY", () -> {
-            throw new RuntimeException("No COSMOS_KEY was found!");
-        });
+        var key = propOrEnv("COSMOS_KEY", null);
+        assertThat(key).describedAs("COSMOS_KEY cannot be null!").isNotNull();
         var client = new CosmosClientBuilder()
                 .key(key)
                 .preferredRegions(Collections.singletonList("westeurope"))

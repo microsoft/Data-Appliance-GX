@@ -6,8 +6,6 @@
 
 package com.microsoft.dagx.common;
 
-import java.util.function.Supplier;
-
 /**
  * Common configuration functions used by extensions.
  */
@@ -26,15 +24,5 @@ public class ConfigurationFunctions {
         String upperKey = key.toUpperCase().replace('.', '_');
         value = System.getenv(upperKey);
         return value != null ? value : defaultValue;
-    }
-
-    public static String propOrEnv(String key, Supplier<String> defaultValueSupplier) {
-        String value = System.getProperty(key);
-        if (value != null) {
-            return value;
-        }
-        String upperKey = key.toUpperCase().replace('.', '_');
-        value = System.getenv(upperKey);
-        return value != null ? value : defaultValueSupplier.get();
     }
 }
