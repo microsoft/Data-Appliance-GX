@@ -14,6 +14,7 @@ import com.microsoft.dagx.spi.types.domain.transfer.TransferProcess;
 @JsonTypeName("dagx:transferprocessdocument")
 public class TransferProcessDocument {
 
+    private String externalId;
     @JsonUnwrapped
     private TransferProcess wrappedInstance;
 
@@ -24,13 +25,14 @@ public class TransferProcessDocument {
         //Jackson does not yet support the combination of @JsonUnwrapped and a @JsonProperty annotation in a constructor
     }
 
-    private TransferProcessDocument(TransferProcess wrappedInstance, String partitionKey) {
+    private TransferProcessDocument(TransferProcess wrappedInstance, String partitionKey, String externalId) {
         this.wrappedInstance = wrappedInstance;
         this.partitionKey = partitionKey;
+        this.externalId = externalId;
     }
 
-    public static TransferProcessDocument from(TransferProcess process) {
-        return new TransferProcessDocument(process, process.getId());
+    public static TransferProcessDocument from(TransferProcess process, String externalId) {
+        return new TransferProcessDocument(process, process.getId(), externalId);
     }
 
 
@@ -40,5 +42,9 @@ public class TransferProcessDocument {
 
     public TransferProcess getWrappedInstance() {
         return wrappedInstance;
+    }
+
+    public String getExternalId() {
+        return externalId;
     }
 }

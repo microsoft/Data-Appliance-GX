@@ -19,6 +19,7 @@ import com.microsoft.dagx.spi.security.Vault;
 import com.microsoft.dagx.spi.system.ServiceExtension;
 import com.microsoft.dagx.spi.system.ServiceExtensionContext;
 import com.microsoft.dagx.spi.transfer.store.TransferProcessStore;
+import com.microsoft.dagx.transfer.store.cosmos.model.TransferProcessDocument;
 
 import java.util.ArrayList;
 
@@ -32,6 +33,9 @@ public class CosmosTransferProcessStoreExtension implements ServiceExtension {
 
     @Override
     public void initialize(ServiceExtensionContext context) {
+
+        monitor = context.getMonitor();
+        monitor.info("Initializing Cosmos Memory Transfer Process Store extension...");
 
         var cosmosAccountName = context.getSetting(COSMOS_ACCOUNTNAME_SETTING, null);
         if (StringUtils.isNullOrEmpty(cosmosAccountName)) {
@@ -64,10 +68,11 @@ public class CosmosTransferProcessStoreExtension implements ServiceExtension {
         final CosmosContainerResponse response = database.createContainerIfNotExists("dagx-transferprocess", "/partitionKey");
         var container = database.getContainer(response.getProperties().getId());
 
-        context.registerService(TransferProcessStore.class, new CosmosTransferProcessStore(container));
+        context.registerService(TransferProcessStore.class, new CosmosTransferProcessStore(container, context.getTypeManager()));
 
-        monitor = context.getMonitor();
+        context.getTypeManager().registerTypes(TransferProcessDocument.class);
         monitor.info("Initialized Cosmos Memory Transfer Process Store extension");
+
     }
 
 

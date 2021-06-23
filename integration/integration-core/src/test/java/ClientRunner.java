@@ -161,7 +161,7 @@ public class ClientRunner {
         extension.registerSystemExtension(ServiceExtension.class, TestExtensions.mockIamExtension(identityService));
     }
 
-    private DataRequest createRequestAws(String id, DataEntry<?> artifactId) {
+    private DataRequest createRequestAws(String id, DataEntry artifactId) {
         return DataRequest.Builder.newInstance()
                 .id(id)
                 .protocol("ids-rest")
@@ -171,7 +171,7 @@ public class ClientRunner {
                 .destinationType(S3BucketSchema.TYPE).build();
     }
 
-    private DataRequest createRequestAzure(String id, DataEntry<?> artifactId) {
+    private DataRequest createRequestAzure(String id, DataEntry artifactId) {
         return DataRequest.Builder.newInstance()
                 .id(id)
                 .protocol("ids-rest")

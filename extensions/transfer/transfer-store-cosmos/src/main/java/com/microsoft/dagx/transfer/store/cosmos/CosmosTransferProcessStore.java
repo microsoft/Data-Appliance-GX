@@ -15,6 +15,7 @@ import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.util.CosmosPagedIterable;
 import com.microsoft.dagx.spi.DagxException;
 import com.microsoft.dagx.spi.transfer.store.TransferProcessStore;
+import com.microsoft.dagx.spi.types.TypeManager;
 import com.microsoft.dagx.spi.types.domain.transfer.TransferProcess;
 import com.microsoft.dagx.transfer.store.cosmos.model.TransferProcessDocument;
 import org.jetbrains.annotations.NotNull;
@@ -29,10 +30,15 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
 
 
     private final CosmosContainer container;
+    private final CosmosQueryRequestOptions tracingOptions;
+    private final TypeManager typeManager;
 
-    public CosmosTransferProcessStore(CosmosContainer container) {
+    public CosmosTransferProcessStore(CosmosContainer container, TypeManager typeManager) {
 
         this.container = container;
+        this.typeManager = typeManager;
+        tracingOptions = new CosmosQueryRequestOptions();
+        tracingOptions.setQueryMetricsEnabled(true);
     }
 
     @Override
@@ -47,32 +53,44 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
 
     @Override
     public @Nullable String processIdForTransferId(String id) {
-        return null;
+        var query = "SELECT * FROM TransferProcessDocument WHERE TransferProcessDocument.partitionKey = '" + id + "'";
+
+        try {
+            var response = container.queryItems(query, tracingOptions, TransferProcessDocument.class);
+            return response.stream().map(pd -> pd.getWrappedInstance().getId()).findFirst().orElse(null);
+        } catch (CosmosException ex) {
+            throw new DagxException(ex);
+        }
     }
 
     @Override
     public @NotNull List<TransferProcess> nextForState(int state, int max) {
         //todo: lock rows for update
 
-        CosmosQueryRequestOptions options = new CosmosQueryRequestOptions();
-        options.setQueryMetricsEnabled(true);
-        options.setMaxBufferedItemCount(max);
+        tracingOptions.setMaxBufferedItemCount(max);
 
         var query = "SELECT * FROM TransferProcessDocument WHERE TransferProcessDocument.state = " + state + " ORDER BY TransferProcessDocument.stateTimestamp OFFSET 0 LIMIT " + max;
 
-        final CosmosPagedIterable<TransferProcessDocument> processes = container.queryItems(query, options, TransferProcessDocument.class);
+        final CosmosPagedIterable<Object> processes = container.queryItems(query, tracingOptions, Object.class);
 
-        return processes.stream().map(TransferProcessDocument::getWrappedInstance).collect(Collectors.toList());
+        final List<TransferProcess> documents = processes.stream().map(typeManager::writeValueAsString)
+                .map(json -> typeManager.readValue(json, TransferProcessDocument.class))
+                .map(TransferProcessDocument::getWrappedInstance)
+                .collect(Collectors.toList());
+
+
+        return documents;
     }
 
     @Override
     public void create(TransferProcess process) {
 
         Objects.requireNonNull(process.getId(), "TransferProcesses must have an ID!");
+        process.transitionInitial();
 
         CosmosItemRequestOptions options = new CosmosItemRequestOptions();
         //todo: configure indexing
-        var document = TransferProcessDocument.from(process);
+        var document = TransferProcessDocument.from(process, process.getDataRequest().getId());
         try {
             final var response = container.createItem(document, new PartitionKey(process.getId()), options);
             handleResponse(response);
@@ -84,7 +102,7 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
 
     @Override
     public void update(TransferProcess process) {
-        var document = TransferProcessDocument.from(process);
+        var document = TransferProcessDocument.from(process, process.getDataRequest().getId());
         try {
             final var response = container.upsertItem(document, new PartitionKey(process.getId()), new CosmosItemRequestOptions());
             handleResponse(response);

@@ -7,6 +7,7 @@
 package com.microsoft.dagx.transfer.store.cosmos.model;
 
 import com.microsoft.dagx.spi.types.TypeManager;
+import com.microsoft.dagx.spi.types.domain.metadata.DataCatalogEntry;
 import com.microsoft.dagx.spi.types.domain.transfer.TransferProcess;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ class TransferProcessDocumentSerializationTest {
     @BeforeEach
     void setup() {
         typeManager = new TypeManager();
+        typeManager.registerTypes(DummyCatalogEntry.class, DataCatalogEntry.class);
         typeManager.registerTypes(TransferProcessDocument.class, TransferProcess.class);
     }
 
@@ -29,7 +31,7 @@ class TransferProcessDocumentSerializationTest {
 
         var transferProcess = createTransferProcess();
 
-        var document = TransferProcessDocument.from(transferProcess);
+        var document = TransferProcessDocument.from(transferProcess, transferProcess.getDataRequest().getId());
 
         final String s = typeManager.writeValueAsString(document);
 
@@ -42,6 +44,7 @@ class TransferProcessDocumentSerializationTest {
         assertThat(s).contains("\"destinationType\":\"Test Address Type\"");
         assertThat(s).contains("\"keyName\":\"Test Key Name\"");
         assertThat(s).contains("\"type\":\"Test Address Type\"");
+        assertThat(s).contains("dummycatalogentry");
 
     }
 
@@ -54,10 +57,10 @@ class TransferProcessDocumentSerializationTest {
                 .resourceManifest(createManifest())
                 .build();
 
-        var document = TransferProcessDocument.from(transferProcess);
+        var document = TransferProcessDocument.from(transferProcess, transferProcess.getDataRequest().getId());
         final String json = typeManager.writeValueAsString(document);
 
-        Object transferProcessDeserialized = typeManager.readValue(json, TransferProcessDocument.class);
+        var transferProcessDeserialized = typeManager.readValue(json, TransferProcessDocument.class);
         assertThat(transferProcessDeserialized).usingRecursiveComparison().isEqualTo(document);
 
     }

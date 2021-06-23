@@ -16,6 +16,7 @@ import com.azure.cosmos.models.CosmosDatabaseResponse;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.util.CosmosPagedIterable;
 import com.microsoft.dagx.spi.DagxException;
+import com.microsoft.dagx.spi.types.TypeManager;
 import com.microsoft.dagx.spi.types.domain.transfer.TransferProcess;
 import com.microsoft.dagx.spi.types.domain.transfer.TransferProcessStates;
 import com.microsoft.dagx.transfer.store.cosmos.model.TransferProcessDocument;
@@ -67,7 +68,7 @@ class CosmosTransferProcessStoreTest {
     void setUp() {
         final CosmosContainerResponse containerIfNotExists = database.createContainerIfNotExists(containerName, "/partitionKey");
         container = database.getContainer(containerIfNotExists.getProperties().getId());
-        store = new CosmosTransferProcessStore(container);
+        store = new CosmosTransferProcessStore(container, new TypeManager());
     }
 
     @Test

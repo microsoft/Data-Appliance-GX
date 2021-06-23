@@ -6,6 +6,8 @@
 
 package com.microsoft.dagx.transfer.store.cosmos;
 
+import com.fasterxml.jackson.annotation.JsonTypeName;
+import com.microsoft.dagx.spi.types.domain.metadata.DataEntry;
 import com.microsoft.dagx.spi.types.domain.transfer.*;
 
 public class TestHelper {
@@ -20,6 +22,10 @@ public class TestHelper {
                 .dataDestination(DataAddress.Builder.newInstance()
                         .type("Test Address Type")
                         .keyName("Test Key Name")
+                        .build())
+                .dataEntry(DataEntry.Builder.newInstance()
+                        .policyId("test-policyId")
+                        .catalogEntry(new DummyCatalogEntry())
                         .build())
                 .processId("test-process-id")
                 .build();
@@ -41,5 +47,13 @@ public class TestHelper {
 
     public static TransferProcess createTransferProcess(String processId) {
         return createTransferProcess(processId, TransferProcessStates.UNSAVED);
+    }
+
+    @JsonTypeName("dagx:dummycatalogentry")
+    public static class DummyCatalogEntry implements com.microsoft.dagx.spi.types.domain.metadata.DataCatalogEntry {
+        @Override
+        public DataAddress getAddress() {
+            return DataAddress.Builder.newInstance().type("test-source-type").build();
+        }
     }
 }
