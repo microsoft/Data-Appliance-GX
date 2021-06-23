@@ -13,10 +13,15 @@ import com.azure.cosmos.CosmosDatabase;
 import com.azure.cosmos.implementation.ConflictException;
 import com.azure.cosmos.models.CosmosContainerResponse;
 import com.azure.cosmos.models.CosmosDatabaseResponse;
+import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.PartitionKey;
 import com.azure.cosmos.util.CosmosPagedIterable;
 import com.microsoft.dagx.spi.DagxException;
 import com.microsoft.dagx.spi.types.TypeManager;
+import com.microsoft.dagx.spi.types.domain.metadata.DataCatalogEntry;
+import com.microsoft.dagx.spi.types.domain.metadata.DataEntry;
+import com.microsoft.dagx.spi.types.domain.transfer.DataRequest;
+import com.microsoft.dagx.spi.types.domain.transfer.ResourceManifest;
 import com.microsoft.dagx.spi.types.domain.transfer.TransferProcess;
 import com.microsoft.dagx.spi.types.domain.transfer.TransferProcessStates;
 import com.microsoft.dagx.transfer.store.cosmos.model.TransferProcessDocument;
@@ -26,10 +31,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static com.microsoft.dagx.common.ConfigurationFunctions.propOrEnv;
 import static com.microsoft.dagx.transfer.store.cosmos.TestHelper.createTransferProcess;
@@ -45,6 +47,7 @@ class CosmosTransferProcessStoreTest {
     private static CosmosContainer container;
     private static CosmosDatabase database;
     private CosmosTransferProcessStore store;
+    private TypeManager typeManager;
 
     @BeforeAll
     static void prepareCosmosClient() {
@@ -89,9 +92,6 @@ class CosmosTransferProcessStoreTest {
         });
     }
 
-    private TransferProcessDocument convert(Object obj) {
-        return typeManager.readValue(typeManager.writeValueAsBytes(obj), TransferProcessDocument.class);
-    }
 
     @Test
     void create_processWithSameIdExists_throwsException() {
@@ -162,6 +162,100 @@ class CosmosTransferProcessStoreTest {
         assertThat(processes).hasSize(3);
     }
 
+    @Test
+    void find() {
+        var tp = createTransferProcess("tp-id");
+        store.create(tp);
+
+        final TransferProcess dbProcess = store.find("tp-id");
+        assertThat(dbProcess).isNotNull().isEqualTo(tp).usingRecursiveComparison();
+    }
+
+    @Test
+    void find_notExist() {
+        assertThat(store.find("not-exist")).isNull();
+    }
+
+    @Test
+    void processIdForTransferId() {
+        var tp = createTransferProcess("process-id");
+        var transferId = tp.getDataRequest().getId();
+        assertThat(transferId).isNotNull();
+
+        store.create(tp);
+
+        final String processId = store.processIdForTransferId(transferId);
+        assertThat(processId).isEqualTo("process-id");
+    }
+
+    @Test
+    void processIdForTransferId_notExist() {
+        assertThat(store.processIdForTransferId("not-exist")).isNull();
+    }
+
+    @Test
+    void update_exists_shouldUpdate() {
+        var tp = createTransferProcess("process-id");
+
+        store.create(tp);
+
+        tp.transitionProvisioning(new ResourceManifest());
+        store.update(tp);
+
+        final CosmosItemResponse<Object> response = container.readItem(tp.getId(), new PartitionKey(tp.getId()), Object.class);
+
+        final TransferProcessDocument stored = convert(response.getItem());
+        assertThat(stored.getWrappedInstance()).isEqualTo(tp);
+        assertThat(stored.getWrappedInstance().getState()).isEqualTo(TransferProcessStates.PROVISIONING.code());
+    }
+
+    @Test
+    void update_notExist_shouldCreate() {
+        var tp = createTransferProcess("process-id");
+
+        tp.transitionInitial();
+        tp.transitionProvisioning(new ResourceManifest());
+        store.update(tp);
+
+        final CosmosItemResponse<Object> response = container.readItem(tp.getId(), new PartitionKey(tp.getId()), Object.class);
+
+        final TransferProcessDocument stored = convert(response.getItem());
+        assertThat(stored.getWrappedInstance()).isEqualTo(tp);
+        assertThat(stored.getWrappedInstance().getState()).isEqualTo(TransferProcessStates.PROVISIONING.code());
+    }
+
+    @Test
+    void delete() {
+
+        final String processId = "test-process-id";
+        var tp = createTransferProcess(processId);
+
+        store.create(tp);
+
+        store.delete(processId);
+
+        final CosmosPagedIterable<Object> objects = container.readAllItems(new PartitionKey(processId), Object.class);
+        assertThat(objects).isEmpty();
+    }
+
+    @Test
+    void delete_notExist() {
+        store.delete("not-exist");
+        //no exception should be raised
+    }
+
+    @Test
+    void verifyAllNotImplemented() {
+        assertThatThrownBy(() -> store.createData("pid", "key", new Object())).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> store.updateData("pid", "key", new Object())).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> store.deleteData("pid", "key")).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> store.deleteData("pid", Set.of("k1", "k2"))).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> store.findData(String.class, "pid", "key")).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    private TransferProcessDocument convert(Object obj) {
+        return typeManager.readValue(typeManager.writeValueAsBytes(obj), TransferProcessDocument.class);
+    }
 
     @AfterEach
     void teardown() {

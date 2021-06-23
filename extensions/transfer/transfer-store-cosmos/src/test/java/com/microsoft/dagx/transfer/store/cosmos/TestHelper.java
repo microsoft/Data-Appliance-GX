@@ -19,6 +19,7 @@ public class TestHelper {
 
     public static DataRequest createDataRequest() {
         return DataRequest.Builder.newInstance()
+                .id("request-id")
                 .dataDestination(DataAddress.Builder.newInstance()
                         .type("Test Address Type")
                         .keyName("Test Key Name")

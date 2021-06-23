@@ -8,6 +8,7 @@ package com.microsoft.dagx.transfer.store.cosmos;
 
 import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosException;
+import com.azure.cosmos.implementation.NotFoundException;
 import com.azure.cosmos.models.CosmosItemRequestOptions;
 import com.azure.cosmos.models.CosmosItemResponse;
 import com.azure.cosmos.models.CosmosQueryRequestOptions;
@@ -44,17 +45,20 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
     @Override
     public TransferProcess find(String id) {
         CosmosItemRequestOptions options = new CosmosItemRequestOptions();
-        final CosmosItemResponse<Object> response = container.readItem(id, new PartitionKey(id), options, Object.class);
+        try {
+            final CosmosItemResponse<Object> response = container.readItem(id, new PartitionKey(id), options, Object.class);
+            var obj = response.getItem();
 
-        var obj = response.getItem();
+            return convertObject(obj).getWrappedInstance();
+        } catch (NotFoundException ex) {
+            return null;
+        }
 
-
-        return convertObject(obj).getWrappedInstance();
     }
 
     @Override
-    public @Nullable String processIdForTransferId(String id) {
-        var query = "SELECT * FROM TransferProcessDocument WHERE TransferProcessDocument.partitionKey = '" + id + "'";
+    public @Nullable String processIdForTransferId(String transferId) {
+        var query = "SELECT * FROM TransferProcessDocument WHERE TransferProcessDocument.dataRequest.id = '" + transferId + "'";
 
         try {
             var response = container.queryItems(query, tracingOptions, Object.class);
@@ -93,6 +97,7 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         var document = TransferProcessDocument.from(process, process.getDataRequest().getId());
         try {
             final var response = container.createItem(document, new PartitionKey(process.getId()), options);
+            /**/
             handleResponse(response);
         } catch (CosmosException cme) {
             throw new DagxException(cme);
@@ -116,6 +121,8 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         try {
             var response = container.deleteItem(processId, new PartitionKey(processId), new CosmosItemRequestOptions());
             handleResponse(response);
+        } catch (NotFoundException ignored) {
+            //noop
         } catch (CosmosException cme) {
             throw new DagxException(cme);
         }
