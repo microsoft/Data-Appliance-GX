@@ -11,11 +11,9 @@ import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
 /**
  * Data that is managed and can be shared by the system.
- *
- * @param <T> domain-specific extension properties.
  */
 @JsonDeserialize(builder = DataEntry.Builder.class)
-public class DataEntry<T extends DataCatalogEntry> {
+public class DataEntry {
     private String id;
     private String policyId;
     private DataCatalogEntry catalogEntry;
@@ -37,10 +35,10 @@ public class DataEntry<T extends DataCatalogEntry> {
 
     @JsonPOJOBuilder(withPrefix = "")
     public static class Builder {
-        private final DataEntry<DataCatalogEntry> dataEntry;
+        private final DataEntry dataEntry;
 
         private Builder() {
-            dataEntry = new DataEntry<>();
+            dataEntry = new DataEntry();
 
         }
 
@@ -64,7 +62,7 @@ public class DataEntry<T extends DataCatalogEntry> {
             return this;
         }
 
-        public DataEntry<DataCatalogEntry> build() {
+        public DataEntry build() {
             return dataEntry;
         }
     }

@@ -47,7 +47,7 @@ public class NifiTransferEndpointConverter {
 
         var keyName = dataAddress.getProperties().get("keyName");
 
-        //need to duplicate the properties here, otherwise the secret would potentially be stored together with the TransferProcess 
+        //need to duplicate the properties here, otherwise the secret would potentially be stored together with the TransferProcess
         Map<String, String> properties = new HashMap<>(dataAddress.getProperties());
 
         String secret = vault.resolveSecret(keyName);
