@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static com.microsoft.dagx.common.Cast.cast;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  */
 @ExtendWith(DagxExtension.class)
-@Disabled
+//@Disabled
 public class ClientRunner {
     private static final String PROVIDER_CONNECTOR = "http://dev-dagx.westeurope.azurecontainer.io:8181";
     private static final TokenResult US_TOKEN = TokenResult.Builder.newInstance().token("mock-us").build();
@@ -63,6 +64,7 @@ public class ClientRunner {
         CompletableFuture<List<String>> future = cast(dispatcherRegistry.send(List.class, query, () -> null));
 
         var artifacts = future.get();
+        artifacts = artifacts.stream().findAny().stream().collect(Collectors.toList());
         latch = new CountDownLatch(artifacts.size());
         for (String artifact : artifacts) {
             System.out.println("processing artifact " + artifact);
@@ -101,7 +103,7 @@ public class ClientRunner {
 
 
     @Test
-    @Disabled
+//    @Disabled
     void processClientRequest_toAzureStorage(RemoteMessageDispatcherRegistry dispatcherRegistry, TransferProcessManager processManager, TransferProcessObservable observable, TransferProcessStore store) throws Exception {
         var query = QueryRequest.Builder.newInstance()
                 .connectorAddress(PROVIDER_CONNECTOR)

@@ -86,11 +86,10 @@ jobs:
         id: validate
         run: terraform -chdir=scripts validate -no-color
 
-      #     deactivated until the GithubActions-User has correct credentials
-#      - name: Terraform Plan
-#        id: plan
-#        if: github.event_name == 'pull_request'
-#        run: terraform -chdir=scripts plan -no-color -var "resourcesuffix=dev" -var "backend_account_key=${{ secrets.TF_BACKEND_KEY }}"
+      - name: Terraform Plan
+        id: plan
+        if: github.event_name == 'pull_request'
+        run: terraform -chdir=scripts plan -no-color -var "resourcesuffix=dev" -var "backend_account_key=${{ secrets.TF_BACKEND_KEY }}"
 
 
 
