@@ -68,7 +68,9 @@ class CosmosTransferProcessStoreTest {
     void setUp() {
         final CosmosContainerResponse containerIfNotExists = database.createContainerIfNotExists(containerName, "/partitionKey");
         container = database.getContainer(containerIfNotExists.getProperties().getId());
-        store = new CosmosTransferProcessStore(container, new TypeManager());
+        typeManager = new TypeManager();
+        typeManager.registerTypes(TestHelper.DummyCatalogEntry.class, DataCatalogEntry.class, DataRequest.class, DataEntry.class);
+        store = new CosmosTransferProcessStore(container, typeManager);
     }
 
     @Test
@@ -77,13 +79,18 @@ class CosmosTransferProcessStoreTest {
         TransferProcess transferProcess = createTransferProcess(id);
         store.create(transferProcess);
 
-        final CosmosPagedIterable<TransferProcessDocument> documents = container.readAllItems(new PartitionKey(id), TransferProcessDocument.class);
+        final CosmosPagedIterable<Object> documents = container.readAllItems(new PartitionKey(id), Object.class);
         assertThat(documents).hasSize(1);
-        assertThat(documents).allSatisfy(doc -> {
+        assertThat(documents).allSatisfy(obj -> {
+            var doc = convert(obj);
             assertThat(doc.getWrappedInstance()).isNotNull();
             assertThat(doc.getWrappedInstance().getId()).isEqualTo(id);
             assertThat(doc.getPartitionKey()).isEqualTo(id);
         });
+    }
+
+    private TransferProcessDocument convert(Object obj) {
+        return typeManager.readValue(typeManager.writeValueAsBytes(obj), TransferProcessDocument.class);
     }
 
     @Test
@@ -101,21 +108,21 @@ class CosmosTransferProcessStoreTest {
     void nextForState() throws InterruptedException {
 
         String id1 = UUID.randomUUID().toString();
-        var tp = createTransferProcess(id1, TransferProcessStates.PROVISIONED);
+        var tp = createTransferProcess(id1, TransferProcessStates.UNSAVED);
 
         String id2 = UUID.randomUUID().toString();
-        var tp2 = createTransferProcess(id2, TransferProcessStates.PROVISIONED);
+        var tp2 = createTransferProcess(id2, TransferProcessStates.UNSAVED);
 
         Thread.sleep(500); //make sure the third process is the youngest - should not get fetched
         String id3 = UUID.randomUUID().toString();
-        var tp3 = createTransferProcess(id3, TransferProcessStates.PROVISIONED);
+        var tp3 = createTransferProcess(id3, TransferProcessStates.UNSAVED);
 
         store.create(tp);
         store.create(tp2);
         store.create(tp3);
 
 
-        final List<TransferProcess> processes = store.nextForState(TransferProcessStates.PROVISIONED.code(), 2);
+        final List<TransferProcess> processes = store.nextForState(TransferProcessStates.INITIAL.code(), 2);
 
         assertThat(processes).hasSize(2);
         //lets make sure the list only contains the 2 oldest ones
@@ -127,13 +134,13 @@ class CosmosTransferProcessStoreTest {
     void nextForState_noneInDesiredState() {
 
         String id1 = UUID.randomUUID().toString();
-        var tp = createTransferProcess(id1, TransferProcessStates.PROVISIONED);
+        var tp = createTransferProcess(id1, TransferProcessStates.UNSAVED);
 
         String id2 = UUID.randomUUID().toString();
-        var tp2 = createTransferProcess(id2, TransferProcessStates.PROVISIONED);
+        var tp2 = createTransferProcess(id2, TransferProcessStates.UNSAVED);
 
         String id3 = UUID.randomUUID().toString();
-        var tp3 = createTransferProcess(id3, TransferProcessStates.PROVISIONED);
+        var tp3 = createTransferProcess(id3, TransferProcessStates.UNSAVED);
 
         store.create(tp);
         store.create(tp2);
@@ -147,11 +154,11 @@ class CosmosTransferProcessStoreTest {
     @Test
     void nextForState_batchSizeLimits() {
         for (var i = 0; i < 5; i++) {
-            var tp = createTransferProcess("process_" + i, TransferProcessStates.IN_PROGRESS);
+            var tp = createTransferProcess("process_" + i, TransferProcessStates.UNSAVED);
             store.create(tp);
         }
 
-        var processes = store.nextForState(TransferProcessStates.IN_PROGRESS.code(), 3);
+        var processes = store.nextForState(TransferProcessStates.INITIAL.code(), 3);
         assertThat(processes).hasSize(3);
     }
 

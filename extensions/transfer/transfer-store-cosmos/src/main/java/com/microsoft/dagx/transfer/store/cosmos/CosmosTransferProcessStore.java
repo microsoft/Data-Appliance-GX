@@ -44,11 +44,12 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
     @Override
     public TransferProcess find(String id) {
         CosmosItemRequestOptions options = new CosmosItemRequestOptions();
-        final CosmosItemResponse<TransferProcessDocument> response = container.readItem(id, new PartitionKey(id), options, TransferProcessDocument.class);
+        final CosmosItemResponse<Object> response = container.readItem(id, new PartitionKey(id), options, Object.class);
 
-        var process = response.getItem();
+        var obj = response.getItem();
 
-        return process.getWrappedInstance();
+
+        return convertObject(obj).getWrappedInstance();
     }
 
     @Override
@@ -56,8 +57,10 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         var query = "SELECT * FROM TransferProcessDocument WHERE TransferProcessDocument.partitionKey = '" + id + "'";
 
         try {
-            var response = container.queryItems(query, tracingOptions, TransferProcessDocument.class);
-            return response.stream().map(pd -> pd.getWrappedInstance().getId()).findFirst().orElse(null);
+            var response = container.queryItems(query, tracingOptions, Object.class);
+            return response.stream()
+                    .map(this::convertObject)
+                    .map(pd -> pd.getWrappedInstance().getId()).findFirst().orElse(null);
         } catch (CosmosException ex) {
             throw new DagxException(ex);
         }
@@ -73,13 +76,10 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
 
         final CosmosPagedIterable<Object> processes = container.queryItems(query, tracingOptions, Object.class);
 
-        final List<TransferProcess> documents = processes.stream().map(typeManager::writeValueAsString)
-                .map(json -> typeManager.readValue(json, TransferProcessDocument.class))
+        return processes.stream()
+                .map(this::convertObject)
                 .map(TransferProcessDocument::getWrappedInstance)
                 .collect(Collectors.toList());
-
-
-        return documents;
     }
 
     @Override
@@ -153,5 +153,9 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         if (code < 200 || code >= 300) {
             throw new DagxException("Error creating TransferProcess in CosmosDB: " + code);
         }
+    }
+
+    private TransferProcessDocument convertObject(Object databaseDocument) {
+        return typeManager.readValue(typeManager.writeValueAsBytes(databaseDocument), TransferProcessDocument.class);
     }
 }
