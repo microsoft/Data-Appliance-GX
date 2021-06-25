@@ -26,7 +26,7 @@ dependencies {
 
     // todo: replace with atlas - but we need this for the time being to provide catalog entries
     implementation(project(":extensions:catalog:catalog-atlas"))
-    implementation(project(":extensions:dataseed:dataseed-policy"))
+    implementation(project(":extensions:dataseed"))
 
     implementation(project(":extensions:security:security-azure"))
     implementation(project(":extensions:policy:policy-registry-memory"))

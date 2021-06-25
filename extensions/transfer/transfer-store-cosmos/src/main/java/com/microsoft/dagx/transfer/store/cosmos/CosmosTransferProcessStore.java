@@ -144,8 +144,6 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
             //noop
         } catch (CosmosException cme) {
             throw new DagxException(cme);
-        } finally {
-            releaseLease(processId);
         }
 
     }
@@ -175,17 +173,6 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
-    @Override
-    public void lock(TransferProcess process) {
-        final String transferProcessId = process.getId();
-//        acquireLease(transferProcessId);
-    }
-
-    @Override
-    public void unlock(TransferProcess process) {
-//        releaseLease(process.getId());
-    }
-
     private void handleResponse(CosmosItemResponse<?> response) {
         final int code = response.getStatusCode();
         if (code < 200 || code >= 300) {
@@ -197,12 +184,5 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         return typeManager.readValue(typeManager.writeValueAsBytes(databaseDocument), TransferProcessDocument.class);
     }
 
-    private void acquireLease(String transferProcessId) {
-//        blobStoreApi.acquireLease(leaseConfiguration.getAccountName(), leaseConfiguration.getContainerName(), transferProcessId, transferProcessId, -1);
-    }
-
-    private void releaseLease(String transferProcessId) {
-//        blobStoreApi.releaseLease(leaseConfiguration.getAccountName(), leaseConfiguration.getContainerName(), transferProcessId, transferProcessId);
-    }
 
 }
