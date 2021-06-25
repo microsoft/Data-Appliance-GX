@@ -48,7 +48,7 @@ class CosmosTransferProcessStoreTest {
     @BeforeAll
     static void prepareCosmosClient() {
 
-        var key = propOrEnv("COSMOS_KEY", "RYNecVDtJq2WKAcIoONBLzuTBys06kUcP8Rw9Yz5zOzsOQFVGaP8oGuI5qgF5ONQY4VukjkpQ4x7a2jwVvo7SQ==");
+        var key = propOrEnv("COSMOS_KEY", null);
         assertThat(key).describedAs("COSMOS_KEY cannot be null!").isNotNull();
         var client = new CosmosClientBuilder()
                 .key(key)

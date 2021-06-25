@@ -50,12 +50,12 @@ resource "azurerm_cosmosdb_sql_database" "dagx-database" {
   throughput          = 400
 }
 
-resource "azurerm_cosmosdb_sql_container" "transferprocess"{
-  name = "dagx-transferprocess"
+resource "azurerm_cosmosdb_sql_container" "transferprocess" {
+  name                = "dagx-transferprocess"
   resource_group_name = azurerm_cosmosdb_account.dagx-cosmos.resource_group_name
-  account_name = azurerm_cosmosdb_account.dagx-cosmos.name
-  database_name = azurerm_cosmosdb_sql_database.dagx-database.name
-  partition_key_path = "/partitionKey"
+  account_name        = azurerm_cosmosdb_account.dagx-cosmos.name
+  database_name       = azurerm_cosmosdb_sql_database.dagx-database.name
+  partition_key_path  = "/partitionKey"
 }
 
 resource "azurerm_cosmosdb_sql_stored_procedure" "nextForState" {
