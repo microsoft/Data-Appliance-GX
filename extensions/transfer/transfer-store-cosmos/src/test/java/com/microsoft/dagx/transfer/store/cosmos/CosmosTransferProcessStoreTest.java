@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,7 +33,7 @@ import static com.microsoft.dagx.transfer.store.cosmos.TestHelper.createTransfer
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-//@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
+@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 class CosmosTransferProcessStoreTest {
 
     private final static String accountName = "cosmos-itest";
