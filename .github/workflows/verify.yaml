@@ -89,12 +89,13 @@ jobs:
         run: ./gradlew external:nifi:processors:check
 
       - name: Test Azure Vault Integration
+        if: ${{ false }} # disabled for now, because it's VERY slow
         id: azure-vault-tests
         env:
           AZ_STORAGE_SAS: ${{ secrets.AZ_STORAGE_SAS }}
         run: ./gradlew extensions:security:security-azure:check
 
-      - name: Test CosmosTransferProcessStore
+      - name: Test Cosmos-based TransferProcessStore
         id: cosmos-transferprocessstore-test
         env:
           COSMOS_KEY: ${{ secrets.COSMOS_DB_MASTERKEY }}
