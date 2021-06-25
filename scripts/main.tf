@@ -264,6 +264,7 @@ resource "azurerm_container_group" "connector-instance" {
       read_only            = true
     }
   }
+  depends_on = [azurerm_cosmosdb_sql_database.dagx-database]
 }
 
 resource "azurerm_container_group" "dagx-nifi" {
