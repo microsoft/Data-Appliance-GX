@@ -51,7 +51,7 @@ on:
   #  pull_request:
   workflow_run:
     workflows: [ "Build Docker Images" ]
-    branches: [ main ]
+    #    branches: [ main ]
     types: [ completed ]
 
 jobs:
