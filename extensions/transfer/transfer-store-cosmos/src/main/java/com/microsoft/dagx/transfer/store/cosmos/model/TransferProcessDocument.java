@@ -21,6 +21,9 @@ public class TransferProcessDocument {
     @JsonProperty
     private String partitionKey;
 
+    @JsonProperty
+    private Lease lease;
+
     protected TransferProcessDocument() {
         //Jackson does not yet support the combination of @JsonUnwrapped and a @JsonProperty annotation in a constructor
     }
@@ -31,8 +34,8 @@ public class TransferProcessDocument {
         this.externalId = externalId;
     }
 
-    public static TransferProcessDocument from(TransferProcess process, String externalId) {
-        return new TransferProcessDocument(process, process.getId(), externalId);
+    public static TransferProcessDocument from(TransferProcess process, String partitionKey, String externalId) {
+        return new TransferProcessDocument(process, partitionKey, externalId);
     }
 
 
@@ -46,5 +49,29 @@ public class TransferProcessDocument {
 
     public String getExternalId() {
         return externalId;
+    }
+
+    public Lease getLease() {
+        return lease;
+    }
+
+    private static class Lease {
+        @JsonProperty
+        private final String leasedBy;
+        @JsonProperty
+        private final long leasedAt;
+
+        public Lease(@JsonProperty("leasedBy") String leasedBy, @JsonProperty("leasedAt") long leasedAt) {
+            this.leasedBy = leasedBy;
+            this.leasedAt = leasedAt;
+        }
+
+        public String getLeasedBy() {
+            return leasedBy;
+        }
+
+        public long getLeasedAt() {
+            return leasedAt;
+        }
     }
 }

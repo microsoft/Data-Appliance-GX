@@ -31,7 +31,7 @@ class TransferProcessDocumentSerializationTest {
 
         var transferProcess = createTransferProcess();
 
-        var document = TransferProcessDocument.from(transferProcess, transferProcess.getDataRequest().getId());
+        var document = TransferProcessDocument.from(transferProcess, "test-process", transferProcess.getDataRequest().getId());
 
         final String s = typeManager.writeValueAsString(document);
 
@@ -57,7 +57,7 @@ class TransferProcessDocumentSerializationTest {
                 .resourceManifest(createManifest())
                 .build();
 
-        var document = TransferProcessDocument.from(transferProcess, transferProcess.getDataRequest().getId());
+        var document = TransferProcessDocument.from(transferProcess, "test-process", transferProcess.getDataRequest().getId());
         final String json = typeManager.writeValueAsString(document);
 
         var transferProcessDeserialized = typeManager.readValue(json, TransferProcessDocument.class);

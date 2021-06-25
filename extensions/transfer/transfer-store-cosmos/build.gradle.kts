@@ -7,7 +7,7 @@ plugins {
     `java-library`
 }
 
-val cosmosSdkVersion: String by project;
+val cosmosSdkVersion: String by project
 
 dependencies {
     api(project(":spi"))

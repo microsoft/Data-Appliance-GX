@@ -10,7 +10,6 @@ import com.azure.cosmos.ConsistencyLevel;
 import com.azure.cosmos.CosmosClient;
 import com.azure.cosmos.CosmosClientBuilder;
 import com.azure.cosmos.CosmosDatabase;
-import com.azure.cosmos.models.CosmosContainerResponse;
 import com.azure.cosmos.models.CosmosDatabaseResponse;
 import com.microsoft.dagx.common.string.StringUtils;
 import com.microsoft.dagx.spi.DagxException;
@@ -22,13 +21,25 @@ import com.microsoft.dagx.spi.transfer.store.TransferProcessStore;
 import com.microsoft.dagx.transfer.store.cosmos.model.TransferProcessDocument;
 
 import java.util.ArrayList;
+import java.util.Set;
 
 /**
  * Provides an in-memory implementation of the {@link com.microsoft.dagx.spi.transfer.store.TransferProcessStore} for testing.
  */
 public class CosmosTransferProcessStoreExtension implements ServiceExtension {
+    /**
+     * The setting for the CosmosDB account name
+     */
     private final static String COSMOS_ACCOUNTNAME_SETTING = "dagx.cosmos.account.name";
+    /**
+     * The setting for the name of the database where TransferProcesses will be stored
+     */
     private final static String COSMOS_DBNAME_SETTING = "dagx.cosmos.database.name";
+
+    private final static String COSMOS_PARTITION_KEY_SETTING = "dagx.cosmos.partitionkey";
+    private final static String DEFAULT_PARTITION_KEY = "dagx";
+    private final static String CONTAINER_NAME = "dagx-transferprocess";
+
     private Monitor monitor;
 
     @Override
@@ -65,16 +76,26 @@ public class CosmosTransferProcessStoreExtension implements ServiceExtension {
 
 
         var database = getDatabase(client, cosmosDbName);
-        final CosmosContainerResponse response = database.createContainerIfNotExists("dagx-transferprocess", "/partitionKey");
-        var container = database.getContainer(response.getProperties().getId());
+        if (database.readAllContainers().stream().noneMatch(sp -> sp.getId().equals(CONTAINER_NAME))) {
+            throw new DagxException("A CosmosDB container named '" + CONTAINER_NAME + "' was not found in account '" + cosmosAccountName + "'. Please create one, preferably using terraform.");
+        }
 
-        context.registerService(TransferProcessStore.class, new CosmosTransferProcessStore(container, context.getTypeManager()));
+//        final CosmosContainerResponse response = database.createContainerIfNotExists(CONTAINER_NAME, "/partitionKey");
+//        var container = database.getContainer(response.getProperties().getId());
+
+        var container = database.getContainer(CONTAINER_NAME);
+        var partitionKey = context.getSetting(COSMOS_PARTITION_KEY_SETTING, DEFAULT_PARTITION_KEY);
+        context.registerService(TransferProcessStore.class, new CosmosTransferProcessStore(container, context.getTypeManager(), partitionKey));
 
         context.getTypeManager().registerTypes(TransferProcessDocument.class);
         monitor.info("Initialized Cosmos Memory Transfer Process Store extension");
 
     }
 
+    @Override
+    public Set<String> requires() {
+        return Set.of("dagx:blobstoreapi");
+    }
 
     @Override
     public void start() {
@@ -90,5 +111,7 @@ public class CosmosTransferProcessStoreExtension implements ServiceExtension {
         CosmosDatabaseResponse databaseResponse = client.createDatabaseIfNotExists(databaseName);
         return client.getDatabase(databaseResponse.getProperties().getId());
     }
+
+
 }
 
