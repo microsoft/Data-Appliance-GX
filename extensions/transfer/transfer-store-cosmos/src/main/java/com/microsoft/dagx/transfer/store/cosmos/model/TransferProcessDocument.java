@@ -55,7 +55,15 @@ public class TransferProcessDocument {
         return lease;
     }
 
-    private static class Lease {
+    public void lease(String connectorId) {
+        if (lease == null || lease.getLeasedBy().equals(connectorId)) {
+            lease = new Lease(connectorId, System.currentTimeMillis());
+        } else {
+            throw new IllegalStateException("This document is leased by " + lease.getLeasedBy() + " and cannot be leased again!");
+        }
+    }
+
+    public static class Lease {
         @JsonProperty
         private final String leasedBy;
         @JsonProperty

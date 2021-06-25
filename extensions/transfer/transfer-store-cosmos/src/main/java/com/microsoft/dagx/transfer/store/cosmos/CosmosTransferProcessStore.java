@@ -94,6 +94,7 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
 
     }
 
+    //todo: use real connector id
     private String getConnectorId() {
         return "dagx-connector";
     }

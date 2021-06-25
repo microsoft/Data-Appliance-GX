@@ -60,7 +60,7 @@ class CosmosTransferProcessStoreTest {
         final CosmosDatabaseResponse response = client.createDatabaseIfNotExists(databaseName);
         database = client.getDatabase(response.getProperties().getId());
 
-
+        /**/
     }
 
     @BeforeEach
@@ -126,6 +126,65 @@ class CosmosTransferProcessStoreTest {
         //lets make sure the list only contains the 2 oldest ones
         assertThat(processes).allMatch(p -> Arrays.asList(id1, id2).contains(p.getId()))
                 .noneMatch(p -> p.getId().equals(id3));
+    }
+
+    @Test
+    void nextForState_shouldOnlyReturnFreeItems() {
+        String id1 = "process1";
+        var tp = createTransferProcess(id1, TransferProcessStates.UNSAVED);
+
+        String id2 = "process2";
+        var tp2 = createTransferProcess(id2, TransferProcessStates.UNSAVED);
+
+        store.create(tp);
+        store.create(tp2);
+        final CosmosItemResponse<Object> response = container.readItem(id2, new PartitionKey(partitionKey), Object.class);
+        final TransferProcessDocument item = convert(response.getItem());
+        item.lease("test-leaser");
+        container.upsertItem(item);
+
+
+        //act - one should be ignored
+        final List<TransferProcess> processes = store.nextForState(TransferProcessStates.INITIAL.code(), 5);
+        assertThat(processes).hasSize(1);
+        assertThat(processes).allMatch(p -> p.getId().equals(id1));
+    }
+
+    @Test
+    void nextForState_selfCanLeaseAgain() {
+        var tp1 = createTransferProcess("process1", TransferProcessStates.INITIAL);
+        var doc = TransferProcessDocument.from(tp1, partitionKey, "extid1");
+        doc.lease("dagx-connector");
+        var originalTs = doc.getLease().getLeasedAt();
+        container.upsertItem(doc);
+
+        var result = store.nextForState(TransferProcessStates.INITIAL.code(), 5);
+        assertThat(result).hasSize(1);
+
+        var updatedDoc = readDocument(tp1.getId());
+        assertThat(updatedDoc.getLease().getLeasedAt()).isNotEqualTo(originalTs);
+    }
+
+
+    @Test
+    void nextForState_noFreeItem_shouldReturnEmpty() {
+        String id1 = "process1";
+        var tp = createTransferProcess(id1, TransferProcessStates.INITIAL);
+
+        String id2 = "process2";
+        var tp2 = createTransferProcess(id2, TransferProcessStates.INITIAL);
+
+        var d1 = TransferProcessDocument.from(tp, partitionKey, "extid1");
+        d1.lease("another-connector");
+        var d2 = TransferProcessDocument.from(tp2, partitionKey, "extid2");
+        d2.lease("a-third-connector");
+
+        container.upsertItem(d1);
+        container.upsertItem(d2);
+
+
+        //act
+        assertThat(store.nextForState(TransferProcessStates.INITIAL.code(), 5)).isEmpty();
     }
 
     @Test
@@ -296,6 +355,11 @@ class CosmosTransferProcessStoreTest {
 
     private TransferProcessDocument convert(Object obj) {
         return typeManager.readValue(typeManager.writeValueAsBytes(obj), TransferProcessDocument.class);
+    }
+
+    private TransferProcessDocument readDocument(String id) {
+        final CosmosItemResponse<Object> response = container.readItem(id, new PartitionKey(partitionKey), Object.class);
+        return convert(response.getItem());
     }
 
     @AfterEach

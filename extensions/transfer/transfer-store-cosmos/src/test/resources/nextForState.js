@@ -13,11 +13,18 @@ function nextForState(state, limit, connectorId) {
 
     // first query
     var filterQuery = {
-        'query': 'SELECT * FROM TransferProcessDocuments t WHERE t.state = @state AND t.lease = null ORDER BY t.stateTimestamp OFFSET 0 LIMIT @limit',
-        'parameters': [{'name': '@state', 'value': parseInt(state, 10)}, {
-            'name': '@limit',
-            'value': parseInt(limit, 10)
-        }]
+        'query': 'SELECT * FROM TransferProcessDocuments t WHERE t.state = @state AND (t.lease = null OR t.lease.leasedBy = @leaser) ORDER BY t.stateTimestamp OFFSET 0 LIMIT @limit',
+        'parameters': [
+            {
+                'name': '@state', 'value': parseInt(state, 10)
+            },
+            {
+                'name': '@limit', 'value': parseInt(limit, 10)
+            },
+            {
+                'name': '@leaser', 'value': connectorId
+            }
+        ]
     };
 
     var accept = collection.queryDocuments(collectionLink, filterQuery, {}, function (err, items, responseOptions) {
@@ -33,13 +40,12 @@ function nextForState(state, limit, connectorId) {
 
         // add lock to all items
         for (var i = 0; i < items.length; i++) {
-            lease(items[0], connectorId)
+            lease(items[i], connectorId)
         }
-        var body = items;
-        response.setBody(body)
+        response.setBody(items)
     });
 
-    if (!accept) throw "Unable to read player details, abort ";
+    if (!accept) throw "Unable to read document details, abort ";
 
     function lease(document, connectorId) {
         document.lease = {
