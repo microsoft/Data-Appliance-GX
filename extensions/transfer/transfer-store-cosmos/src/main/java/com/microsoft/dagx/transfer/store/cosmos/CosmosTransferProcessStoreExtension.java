@@ -88,7 +88,7 @@ public class CosmosTransferProcessStoreExtension implements ServiceExtension {
         context.registerService(TransferProcessStore.class, new CosmosTransferProcessStore(container, context.getTypeManager(), partitionKey));
 
         context.getTypeManager().registerTypes(TransferProcessDocument.class);
-        monitor.info("Initialized Cosmos Memory Transfer Process Store extension");
+        monitor.info("Initialized CosmosDB Transfer Process Store extension");
 
     }
 

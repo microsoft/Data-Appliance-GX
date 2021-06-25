@@ -11,6 +11,9 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import com.microsoft.dagx.spi.types.domain.transfer.TransferProcess;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+
 @JsonTypeName("dagx:transferprocessdocument")
 public class TransferProcessDocument {
 
@@ -55,11 +58,13 @@ public class TransferProcessDocument {
         return lease;
     }
 
-    public void lease(String connectorId) {
+    public void acquireLease(String connectorId) {
         if (lease == null || lease.getLeasedBy().equals(connectorId)) {
-            lease = new Lease(connectorId, System.currentTimeMillis());
+            lease = new Lease(connectorId);
         } else {
-            throw new IllegalStateException("This document is leased by " + lease.getLeasedBy() + " and cannot be leased again!");
+            var startDate = Instant.ofEpochMilli(lease.getLeasedAt());
+            var endDate = Instant.ofEpochMilli(lease.getLeasedUntil());
+            throw new IllegalStateException("This document is leased by " + lease.getLeasedBy() + "on " + startDate.toString() + " and cannot be leased again until " + endDate.toString() + "!");
         }
     }
 
@@ -68,10 +73,17 @@ public class TransferProcessDocument {
         private final String leasedBy;
         @JsonProperty
         private final long leasedAt;
+        @JsonProperty
+        private final long leasedUntil;
 
-        public Lease(@JsonProperty("leasedBy") String leasedBy, @JsonProperty("leasedAt") long leasedAt) {
+        private Lease(String leasedBy) {
+            this(leasedBy, Instant.now().toEpochMilli(), Instant.now().plus(60, ChronoUnit.SECONDS).toEpochMilli());
+        }
+
+        public Lease(@JsonProperty("leasedBy") String leasedBy, @JsonProperty("leasedAt") long leasedAt, @JsonProperty("leasedUntil") long leasedUntil) {
             this.leasedBy = leasedBy;
             this.leasedAt = leasedAt;
+            this.leasedUntil = leasedUntil;
         }
 
         public String getLeasedBy() {
@@ -80,6 +92,10 @@ public class TransferProcessDocument {
 
         public long getLeasedAt() {
             return leasedAt;
+        }
+
+        public long getLeasedUntil() {
+            return leasedUntil;
         }
     }
 }

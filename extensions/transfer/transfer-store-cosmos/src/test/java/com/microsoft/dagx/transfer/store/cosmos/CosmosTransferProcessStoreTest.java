@@ -140,7 +140,7 @@ class CosmosTransferProcessStoreTest {
         store.create(tp2);
         final CosmosItemResponse<Object> response = container.readItem(id2, new PartitionKey(partitionKey), Object.class);
         final TransferProcessDocument item = convert(response.getItem());
-        item.lease("test-leaser");
+        item.acquireLease("test-leaser");
         container.upsertItem(item);
 
 
@@ -154,7 +154,7 @@ class CosmosTransferProcessStoreTest {
     void nextForState_selfCanLeaseAgain() {
         var tp1 = createTransferProcess("process1", TransferProcessStates.INITIAL);
         var doc = TransferProcessDocument.from(tp1, partitionKey, "extid1");
-        doc.lease("dagx-connector");
+        doc.acquireLease("dagx-connector");
         var originalTs = doc.getLease().getLeasedAt();
         container.upsertItem(doc);
 
@@ -175,9 +175,9 @@ class CosmosTransferProcessStoreTest {
         var tp2 = createTransferProcess(id2, TransferProcessStates.INITIAL);
 
         var d1 = TransferProcessDocument.from(tp, partitionKey, "extid1");
-        d1.lease("another-connector");
+        d1.acquireLease("another-connector");
         var d2 = TransferProcessDocument.from(tp2, partitionKey, "extid2");
-        d2.lease("a-third-connector");
+        d2.acquireLease("a-third-connector");
 
         container.upsertItem(d1);
         container.upsertItem(d2);
