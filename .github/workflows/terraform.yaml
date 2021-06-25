@@ -45,10 +45,14 @@
 name: 'Terraform'
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+  #  push:
+  #    branches:
+  #      - main
+  #  pull_request:
+  workflow_run:
+    workflows: [ "Build Docker Images" ]
+    branches: [ main ]
+    types: [ completed ]
 
 jobs:
   terraform:
@@ -86,19 +90,19 @@ jobs:
         id: validate
         run: terraform -chdir=scripts validate -no-color
 
-      #     deactivated until the GithubActions-User has correct credentials
       - name: Terraform Plan
         id: plan
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && github.event.workflow_run.conclusion == 'success'
         run: terraform -chdir=scripts plan -no-color -var "resourcesuffix=dev" -var "backend_account_key=${{ secrets.TF_BACKEND_KEY }}"
 
 
+      - name: Taint the connector instance
+        id: taint
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.event.workflow_run.conclusion == 'success'
+        run: terraform -chdir=scripts taint azurerm_container_group.connector-instance
+        continue-on-error: true
 
-#      - name: Taint the connector instance
-#        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-#        run: terraform -chdir=scripts taint azurerm_container_group.connector-instance
-#        continue-on-error: true
-#
-#      - name: Terraform Apply
-#        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-#        run: terraform -chdir=scripts apply -var "resourcesuffix=dev" -var "backend_account_key=${{ secrets.TF_BACKEND_KEY }}" -auto-approve
+      - name: Terraform Apply
+        id: apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push' && github.event.workflow_run.conclusion == 'success'
+        run: terraform -chdir=scripts apply -var "resourcesuffix=dev" -var "backend_account_key=${{ secrets.TF_BACKEND_KEY }}" -auto-approve
