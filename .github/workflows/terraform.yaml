@@ -44,15 +44,15 @@
 
 name: 'Terraform'
 
+# on:
+#   workflow_run:
+#     workflows: [ "Build Docker Images" ]
+#     types: [ completed ]
 on:
-  #  push:
-  #    branches:
-  #      - main
-  #  pull_request:
-  workflow_run:
-    workflows: [ "Build Docker Images" ]
-    #    branches: [ main ]
-    types: [ completed ]
+  push:
+    branches:
+      - main
+  pull_request:
 
 jobs:
   terraform:
