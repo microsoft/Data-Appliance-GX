@@ -13,36 +13,6 @@ resource "azurerm_cosmosdb_account" "dagx-cosmos" {
 
 }
 
-//resource "azurerm_cosmosdb_sql_container" "example" {
-//  name                  = "example-container"
-//  resource_group_name   = azurerm_cosmosdb_account.dagx-cosmos.resource_group_name
-//  account_name          = azurerm_cosmosdb_account.dagx-cosmos.name
-//  database_name         = azurerm_cosmosdb_sql_database.dagx-database.name
-//  partition_key_path    = "/definition/id"
-//  partition_key_version = 1
-//  throughput            = 400
-//
-//  indexing_policy {
-//    indexing_mode = "Consistent"
-//
-//    included_path {
-//      path = "/*"
-//    }
-//
-//    included_path {
-//      path = "/included/?"
-//    }
-//
-//    excluded_path {
-//      path = "/excluded/?"
-//    }
-//  }
-//
-//  unique_key {
-//    paths = ["/definition/idlong", "/definition/idshort"]
-//  }
-//}
-
 resource "azurerm_cosmosdb_sql_database" "dagx-database" {
   account_name        = azurerm_cosmosdb_account.dagx-cosmos.name
   name                = "dagx-database"
