@@ -10,31 +10,43 @@ import com.azure.cosmos.CosmosContainer;
 import com.azure.cosmos.CosmosException;
 import com.azure.cosmos.CosmosStoredProcedure;
 import com.azure.cosmos.implementation.NotFoundException;
+import com.azure.cosmos.implementation.RequestRateTooLargeException;
 import com.azure.cosmos.models.*;
 import com.microsoft.dagx.spi.DagxException;
 import com.microsoft.dagx.spi.transfer.store.TransferProcessStore;
 import com.microsoft.dagx.spi.types.TypeManager;
 import com.microsoft.dagx.spi.types.domain.transfer.TransferProcess;
 import com.microsoft.dagx.transfer.store.cosmos.model.TransferProcessDocument;
+import net.jodah.failsafe.Fallback;
+import net.jodah.failsafe.RetryPolicy;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.time.Duration;
+import java.util.*;
 import java.util.stream.Collectors;
+
+import static net.jodah.failsafe.Failsafe.with;
 
 public class CosmosTransferProcessStore implements TransferProcessStore {
 
 
+    private final static String nextForStateSProcName = "nextForState";
+    private final static String leaseSProcName = "lease";
     private final CosmosContainer container;
     private final CosmosQueryRequestOptions tracingOptions;
     private final TypeManager typeManager;
     private final String partitionKey;
-    private final String nextForStateSProcName = "nextForState";
-    private final String leaseSProcName = "lease";
+    private final RetryPolicy<Object> retryPolicy;
 
+    /**
+     * Creates a new instance of the CosmosDB-based transfer process store.
+     *
+     * @param container    The CosmosDB-container that'll hold the transfer processes.
+     * @param typeManager  The {@link TypeManager} that's used for serialization and deserialization
+     * @param partitionKey A Partition Key that CosmosDB uses for r/w distribution. Contrary to what CosmosDB docs state,
+     *                     is HIGHLY ADVISABLE to use one fixed value for all TPs because otherwise we're not able to find
+     */
     public CosmosTransferProcessStore(CosmosContainer container, TypeManager typeManager, String partitionKey) {
 
         this.container = container;
@@ -42,13 +54,18 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         this.partitionKey = partitionKey;
         tracingOptions = new CosmosQueryRequestOptions();
         tracingOptions.setQueryMetricsEnabled(true);
+        retryPolicy = new RetryPolicy<>()
+                .handle(RequestRateTooLargeException.class)
+                .withMaxRetries(1).withDelay(Duration.ofSeconds(5));
     }
 
     @Override
     public TransferProcess find(String id) {
         CosmosItemRequestOptions options = new CosmosItemRequestOptions();
         try {
-            final CosmosItemResponse<Object> response = container.readItem(id, new PartitionKey(partitionKey), options, Object.class);
+            // we need to read the TransferProcessDocument as Object, because no custom JSON deserialization can be registered
+            // with the CosmosDB SDK, so it would not know about subtypes, etc.
+            final CosmosItemResponse<Object> response = with(retryPolicy).get(() -> container.readItem(id, new PartitionKey(partitionKey), options, Object.class));
             var obj = response.getItem();
 
             return convertObject(obj).getWrappedInstance();
@@ -63,7 +80,7 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         var query = "SELECT * FROM TransferProcessDocument WHERE TransferProcessDocument.dataRequest.id = '" + transferId + "'";
 
         try {
-            var response = container.queryItems(query, tracingOptions, Object.class);
+            var response = with(retryPolicy).get(() -> container.queryItems(query, tracingOptions, Object.class));
             return response.stream()
                     .map(this::convertObject)
                     .map(pd -> pd.getWrappedInstance().getId()).findFirst().orElse(null);
@@ -82,8 +99,14 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         var options = new CosmosStoredProcedureRequestOptions();
         options.setPartitionKey(new PartitionKey(partitionKey));
 
-        final CosmosStoredProcedureResponse response = sproc.execute(params, options);
-        var rawJson = response.getResponseAsString();
+        var rawJson = with(Fallback.of((String) null), retryPolicy).get(() -> {
+            final CosmosStoredProcedureResponse response = sproc.execute(params, options);
+            return response.getResponseAsString();
+        });
+
+        if (rawJson == null) {
+            return Collections.emptyList();
+        }
 
         //now we need to convert to a list, convert each element in that list to json, and convert that back to a TransferProcessDocument
         var l = typeManager.readValue(rawJson, List.class);
@@ -105,10 +128,9 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
 
         CosmosItemRequestOptions options = new CosmosItemRequestOptions();
         //todo: configure indexing
-        var document = TransferProcessDocument.from(process, partitionKey, process.getDataRequest().getId());
+        var document = TransferProcessDocument.from(process, partitionKey);
         try {
-            final var response = container.createItem(document, new PartitionKey(partitionKey), options);
-            /**/
+            final var response = with(retryPolicy).get(() -> container.createItem(document, new PartitionKey(partitionKey), options));
             handleResponse(response);
         } catch (CosmosException cme) {
             throw new DagxException(cme);
@@ -117,10 +139,10 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
 
     @Override
     public void update(TransferProcess process) {
-        var document = TransferProcessDocument.from(process, partitionKey, process.getDataRequest().getId());
+        var document = TransferProcessDocument.from(process, partitionKey);
         try {
             lease(process.getId(), getConnectorId());
-            final var response = container.upsertItem(document, new PartitionKey(partitionKey), new CosmosItemRequestOptions());
+            final var response = with(retryPolicy).get(() -> container.upsertItem(document, new PartitionKey(partitionKey), new CosmosItemRequestOptions()));
             handleResponse(response);
             release(process.getId(), getConnectorId());
         } catch (CosmosException cme) {
@@ -132,7 +154,7 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
     public void delete(String processId) {
         try {
             lease(processId, getConnectorId());
-            var response = container.deleteItem(processId, new PartitionKey(partitionKey), new CosmosItemRequestOptions());
+            var response = with(retryPolicy).get(() -> container.deleteItem(processId, new PartitionKey(partitionKey), new CosmosItemRequestOptions()));
             handleResponse(response);
             release(processId, getConnectorId());
         } catch (NotFoundException ignored) {
@@ -179,7 +201,6 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         return typeManager.readValue(typeManager.writeValueAsBytes(databaseDocument), TransferProcessDocument.class);
     }
 
-
     private void release(String processId, Object connectorId) {
         writeLease(processId, connectorId, false);
     }
@@ -194,8 +215,10 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         var options = new CosmosStoredProcedureRequestOptions();
         options.setPartitionKey(new PartitionKey(partitionKey));
 
-        var response = sproc.execute(args, options);
-        var code = response.getStatusCode();
+        var code = with(retryPolicy).get(() -> {
+            var response = sproc.execute(args, options);
+            return response.getStatusCode();
+        });
 
         if (code < 200 || code >= 300) {
             throw new DagxException("Error breaking lease on process '" + processId + "': " + code);

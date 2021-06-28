@@ -160,7 +160,7 @@ class CosmosTransferProcessStoreTest {
     @Test
     void nextForState_selfCanLeaseAgain() {
         var tp1 = createTransferProcess("process1", TransferProcessStates.INITIAL);
-        var doc = TransferProcessDocument.from(tp1, partitionKey, "extid1");
+        var doc = TransferProcessDocument.from(tp1, partitionKey);
         doc.acquireLease("dagx-connector");
         var originalTs = doc.getLease().getLeasedAt();
         container.upsertItem(doc);
@@ -180,9 +180,9 @@ class CosmosTransferProcessStoreTest {
         String id2 = "process2";
         var tp2 = createTransferProcess(id2, TransferProcessStates.INITIAL);
 
-        var d1 = TransferProcessDocument.from(tp, partitionKey, "extid1");
+        var d1 = TransferProcessDocument.from(tp, partitionKey);
         d1.acquireLease("another-connector");
-        var d2 = TransferProcessDocument.from(tp2, partitionKey, "extid2");
+        var d2 = TransferProcessDocument.from(tp2, partitionKey);
         d2.acquireLease("a-third-connector");
 
         container.upsertItem(d1);
@@ -293,7 +293,7 @@ class CosmosTransferProcessStoreTest {
     void update_leasedBySelf() {
         var tp = createTransferProcess("proc1", TransferProcessStates.INITIAL);
 
-        var doc = TransferProcessDocument.from(tp, partitionKey, "ext-id");
+        var doc = TransferProcessDocument.from(tp, partitionKey);
         container.upsertItem(doc).getItem();
         doc.acquireLease("dagx-connector");
         container.upsertItem(doc);
@@ -310,7 +310,7 @@ class CosmosTransferProcessStoreTest {
         var tp = createTransferProcess("proc1", TransferProcessStates.INITIAL);
 
         //simulate another connector
-        var doc = TransferProcessDocument.from(tp, partitionKey, "ext-id");
+        var doc = TransferProcessDocument.from(tp, partitionKey);
         container.upsertItem(doc).getItem();
 
         doc.acquireLease("another-connector");
@@ -339,7 +339,7 @@ class CosmosTransferProcessStoreTest {
     void delete_isLeased_shouldThrowException() {
         final String processId = "test-process-id";
         var tp = createTransferProcess(processId);
-        var doc = TransferProcessDocument.from(tp, partitionKey, "some-extid");
+        var doc = TransferProcessDocument.from(tp, partitionKey);
         doc.acquireLease("some-other-connector");
         container.upsertItem(doc);
 
@@ -350,7 +350,7 @@ class CosmosTransferProcessStoreTest {
     void delete_isLeasedBySelf() {
         final String processId = "test-process-id";
         var tp = createTransferProcess(processId);
-        var doc = TransferProcessDocument.from(tp, partitionKey, "some-extid");
+        var doc = TransferProcessDocument.from(tp, partitionKey);
         doc.acquireLease("dagx-connector");
         container.upsertItem(doc);
 
