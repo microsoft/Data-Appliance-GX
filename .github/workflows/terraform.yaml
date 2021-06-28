@@ -58,7 +58,8 @@ jobs:
   terraform:
     name: 'Terraform'
     runs-on: ubuntu-latest
-    environment: production
+    environment: dev
+
     env:
       ARM_CLIENT_ID: ${{ secrets.AZURE_AD_CIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}

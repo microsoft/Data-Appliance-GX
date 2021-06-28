@@ -7,6 +7,7 @@
 package com.microsoft.dagx.transfer.store.cosmos;
 
 import com.azure.cosmos.*;
+import com.azure.cosmos.implementation.BadRequestException;
 import com.azure.cosmos.implementation.ConflictException;
 import com.azure.cosmos.models.*;
 import com.azure.cosmos.util.CosmosPagedIterable;
@@ -48,6 +49,11 @@ class CosmosTransferProcessStoreTest {
     @BeforeAll
     static void prepareCosmosClient() {
 
+        var isCi = propOrEnv("CI", "false");
+        if (!Boolean.parseBoolean(isCi)) {
+            return;
+        }
+
         var key = propOrEnv("COSMOS_KEY", null);
         assertThat(key).describedAs("COSMOS_KEY cannot be null!").isNotNull();
         var client = new CosmosClientBuilder()
@@ -67,7 +73,8 @@ class CosmosTransferProcessStoreTest {
     void setUp() {
         final CosmosContainerResponse containerIfNotExists = database.createContainerIfNotExists(containerName, "/partitionKey");
         container = database.getContainer(containerIfNotExists.getProperties().getId());
-        uploadStoredProcedure(container);
+        uploadStoredProcedure(container, "nextForState");
+        uploadStoredProcedure(container, "lease");
         typeManager = new TypeManager();
         typeManager.registerTypes(TestHelper.DummyCatalogEntry.class, DataCatalogEntry.class, DataRequest.class, DataEntry.class);
         store = new CosmosTransferProcessStore(container, typeManager, partitionKey);
@@ -164,7 +171,6 @@ class CosmosTransferProcessStoreTest {
         var updatedDoc = readDocument(tp1.getId());
         assertThat(updatedDoc.getLease().getLeasedAt()).isNotEqualTo(originalTs);
     }
-
 
     @Test
     void nextForState_noFreeItem_shouldReturnEmpty() {
@@ -264,6 +270,7 @@ class CosmosTransferProcessStoreTest {
         final TransferProcessDocument stored = convert(response.getItem());
         assertThat(stored.getWrappedInstance()).isEqualTo(tp);
         assertThat(stored.getWrappedInstance().getState()).isEqualTo(TransferProcessStates.PROVISIONING.code());
+        assertThat(stored.getLease()).isNull();
     }
 
     @Test
@@ -279,6 +286,39 @@ class CosmosTransferProcessStoreTest {
         final TransferProcessDocument stored = convert(response.getItem());
         assertThat(stored.getWrappedInstance()).isEqualTo(tp);
         assertThat(stored.getWrappedInstance().getState()).isEqualTo(TransferProcessStates.PROVISIONING.code());
+        assertThat(stored.getLease()).isNull();
+    }
+
+    @Test
+    void update_leasedBySelf() {
+        var tp = createTransferProcess("proc1", TransferProcessStates.INITIAL);
+
+        var doc = TransferProcessDocument.from(tp, partitionKey, "ext-id");
+        container.upsertItem(doc).getItem();
+        doc.acquireLease("dagx-connector");
+        container.upsertItem(doc);
+
+        //act
+        tp.transitionProvisioning(new ResourceManifest());
+        store.update(tp);
+
+        assertThat(tp.getState()).isEqualTo(TransferProcessStates.PROVISIONING.code());
+    }
+
+    @Test
+    void update_leasedByOther_shouldThrowException() {
+        var tp = createTransferProcess("proc1", TransferProcessStates.INITIAL);
+
+        //simulate another connector
+        var doc = TransferProcessDocument.from(tp, partitionKey, "ext-id");
+        container.upsertItem(doc).getItem();
+
+        doc.acquireLease("another-connector");
+        container.upsertItem(doc);
+
+        //act
+        tp.transitionProvisioning(new ResourceManifest());
+        assertThatThrownBy(() -> store.update(tp)).isInstanceOf(DagxException.class).hasRootCauseInstanceOf(BadRequestException.class);
     }
 
     @Test
@@ -293,6 +333,28 @@ class CosmosTransferProcessStoreTest {
 
         final CosmosPagedIterable<Object> objects = container.readAllItems(new PartitionKey(processId), Object.class);
         assertThat(objects).isEmpty();
+    }
+
+    @Test
+    void delete_isLeased_shouldThrowException() {
+        final String processId = "test-process-id";
+        var tp = createTransferProcess(processId);
+        var doc = TransferProcessDocument.from(tp, partitionKey, "some-extid");
+        doc.acquireLease("some-other-connector");
+        container.upsertItem(doc);
+
+        assertThatThrownBy(() -> store.delete(processId)).isInstanceOf(DagxException.class).hasRootCauseInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void delete_isLeasedBySelf() {
+        final String processId = "test-process-id";
+        var tp = createTransferProcess(processId);
+        var doc = TransferProcessDocument.from(tp, partitionKey, "some-extid");
+        doc.acquireLease("dagx-connector");
+        container.upsertItem(doc);
+
+        store.delete(processId);
     }
 
     @Test
@@ -336,19 +398,19 @@ class CosmosTransferProcessStoreTest {
 
     }
 
-    private void uploadStoredProcedure(CosmosContainer container) {
+    private void uploadStoredProcedure(CosmosContainer container, String name) {
         // upload stored procedure
-        var is = Thread.currentThread().getContextClassLoader().getResourceAsStream("nextForState.js");
+        var is = Thread.currentThread().getContextClassLoader().getResourceAsStream(name + ".js");
         if (is == null) {
-            throw new AssertionError("The input stream referring to the nextForState.js file cannot be null!");
+            throw new AssertionError("The input stream referring to the " + name + " file cannot be null!");
         }
 
         Scanner s = new Scanner(is).useDelimiter("\\A");
         String body = s.hasNext() ? s.next() : "";
-        CosmosStoredProcedureProperties props = new CosmosStoredProcedureProperties("nextForState", body);
+        CosmosStoredProcedureProperties props = new CosmosStoredProcedureProperties(name, body);
 
         final CosmosScripts scripts = container.getScripts();
-        if (scripts.readAllStoredProcedures().stream().noneMatch(sp -> sp.getId().equals("nextForState"))) {
+        if (scripts.readAllStoredProcedures().stream().noneMatch(sp -> sp.getId().equals(name))) {
             final CosmosStoredProcedureResponse storedProcedure = scripts.createStoredProcedure(props);
         }
     }

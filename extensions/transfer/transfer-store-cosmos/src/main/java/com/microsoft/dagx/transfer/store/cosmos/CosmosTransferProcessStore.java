@@ -32,6 +32,8 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
     private final CosmosQueryRequestOptions tracingOptions;
     private final TypeManager typeManager;
     private final String partitionKey;
+    private final String nextForStateSProcName = "nextForState";
+    private final String leaseSProcName = "lease";
 
     public CosmosTransferProcessStore(CosmosContainer container, TypeManager typeManager, String partitionKey) {
 
@@ -75,7 +77,7 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
 
         tracingOptions.setMaxBufferedItemCount(max);
 
-        var sproc = getStoredProcedure();
+        var sproc = getStoredProcedure(nextForStateSProcName);
         List<Object> params = Arrays.asList(state, max, getConnectorId());
         var options = new CosmosStoredProcedureRequestOptions();
         options.setPartitionKey(new PartitionKey(partitionKey));
@@ -92,15 +94,6 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
                 .map(tp -> ((TransferProcessDocument) tp).getWrappedInstance())
                 .collect(Collectors.toList());
 
-    }
-
-    //todo: use real connector id
-    private String getConnectorId() {
-        return "dagx-connector";
-    }
-
-    private CosmosStoredProcedure getStoredProcedure() {
-        return container.getScripts().getStoredProcedure("nextForState");
     }
 
 
@@ -122,25 +115,26 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         }
     }
 
-
     @Override
     public void update(TransferProcess process) {
         var document = TransferProcessDocument.from(process, partitionKey, process.getDataRequest().getId());
         try {
+            lease(process.getId(), getConnectorId());
             final var response = container.upsertItem(document, new PartitionKey(partitionKey), new CosmosItemRequestOptions());
             handleResponse(response);
+            release(process.getId(), getConnectorId());
         } catch (CosmosException cme) {
             throw new DagxException(cme);
-        } finally {
-//            releaseLease(process.getId());
         }
     }
 
     @Override
     public void delete(String processId) {
         try {
+            lease(processId, getConnectorId());
             var response = container.deleteItem(processId, new PartitionKey(partitionKey), new CosmosItemRequestOptions());
             handleResponse(response);
+            release(processId, getConnectorId());
         } catch (NotFoundException ignored) {
             //noop
         } catch (CosmosException cme) {
@@ -177,7 +171,7 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
     private void handleResponse(CosmosItemResponse<?> response) {
         final int code = response.getStatusCode();
         if (code < 200 || code >= 300) {
-            throw new DagxException("Error creating TransferProcess in CosmosDB: " + code);
+            throw new DagxException("Error during CosmosDB interaction: " + code);
         }
     }
 
@@ -185,5 +179,37 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
         return typeManager.readValue(typeManager.writeValueAsBytes(databaseDocument), TransferProcessDocument.class);
     }
 
+
+    private void release(String processId, Object connectorId) {
+        writeLease(processId, connectorId, false);
+    }
+
+    private void lease(String processId, String connectorId) {
+        writeLease(processId, connectorId, true);
+    }
+
+    private void writeLease(String processId, Object connectorId, boolean writeLease) {
+        var sproc = getStoredProcedure(leaseSProcName);
+        List<Object> args = Arrays.asList(processId, connectorId, writeLease);
+        var options = new CosmosStoredProcedureRequestOptions();
+        options.setPartitionKey(new PartitionKey(partitionKey));
+
+        var response = sproc.execute(args, options);
+        var code = response.getStatusCode();
+
+        if (code < 200 || code >= 300) {
+            throw new DagxException("Error breaking lease on process '" + processId + "': " + code);
+        }
+    }
+
+
+    //todo: use real connector id
+    private String getConnectorId() {
+        return "dagx-connector";
+    }
+
+    private CosmosStoredProcedure getStoredProcedure(String sprocName) {
+        return container.getScripts().getStoredProcedure(sprocName);
+    }
 
 }

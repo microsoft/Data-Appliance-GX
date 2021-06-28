@@ -38,7 +38,7 @@ public class TransferProcessDocument {
     }
 
     public static TransferProcessDocument from(TransferProcess process, String partitionKey, String externalId) {
-        return new TransferProcessDocument(process, partitionKey, externalId);
+        return new TransferProcessDocument(process, partitionKey, process.getDataRequest().getId());
     }
 
 
