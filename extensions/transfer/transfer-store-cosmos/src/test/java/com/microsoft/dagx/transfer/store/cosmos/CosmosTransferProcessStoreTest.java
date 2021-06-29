@@ -24,6 +24,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,7 +34,7 @@ import static com.microsoft.dagx.transfer.store.cosmos.TestHelper.createTransfer
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-//@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
+@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 class CosmosTransferProcessStoreTest {
 
     private final static String accountName = "cosmos-itest";
@@ -49,12 +50,12 @@ class CosmosTransferProcessStoreTest {
     @BeforeAll
     static void prepareCosmosClient() {
 
-//        var isCi = propOrEnv("CI", "false");
-//        if (!Boolean.parseBoolean(isCi)) {
-//            return;
-//        }
+        var isCi = propOrEnv("CI", "false");
+        if (!Boolean.parseBoolean(isCi)) {
+            return;
+        }
 
-        var key = propOrEnv("COSMOS_KEY", "RYNecVDtJq2WKAcIoONBLzuTBys06kUcP8Rw9Yz5zOzsOQFVGaP8oGuI5qgF5ONQY4VukjkpQ4x7a2jwVvo7SQ==");
+        var key = propOrEnv("COSMOS_KEY", null);
         assertThat(key).describedAs("COSMOS_KEY cannot be null!").isNotNull();
         var client = new CosmosClientBuilder()
                 .key(key)
