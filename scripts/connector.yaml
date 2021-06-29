@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: connector-demo
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      connector-demo: web
+  template:
+    metadata:
+      labels:
+        connector-demo: web
+    spec:
+      containers:
+        - name: connector
+          image: ghcr.io/microsoft/data-appliance-gx/dagx-demo:latest
+          env:
+            - name: CLIENTID
+              value: "41d9b668-bb63-4098-b2ba-3b2da587e3b4"
+            - name: TENANTID
+              value: "1d9b26d0-b6ea-4495-97d3-e85ccf73a154"
+            - name: VAULTNAME
+              value: "dagx-dev-vault"
+            - name: ATLAS_URL
+              value: "https://dev-dagx-atlas.westeurope.cloudapp.azure.com"
+            - name: NIFI_URL
+              value: "http://dev-dagx-nifi.westeurope.azurecontainer.io:8080/"
+            - name: NIFI_FLOW_URL
+              value: "http://dev-dagx-nifi.westeurope.azurecontainer.io:8888/"
+            - name: COSMOS_ACCOUNT
+              value: "dagx-cosmos"
+            - name: COSMOS_DB
+              value: "dagx-database"
+          volumeMounts:
+            - mountPath: /cert/cert.pfx
+              name: certificates
+              readOnly: true
+          ports:
+            - containerPort: 8181
+              hostPort: 8181
+              protocol: TCP
+      volumes:
+        - name: certificates
+          hostPath:
+            path: "/Users/paul/dev/Data-Appliance-GX/scripts/cert.pfx"
+            type: File
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: connector-entrypoint
+  namespace: default
+spec:
+  type: NodePort
+  selector:
+    connector-demo: web
+  ports:
+    - port: 8181
+      targetPort: 8181
+      nodePort: 30001
