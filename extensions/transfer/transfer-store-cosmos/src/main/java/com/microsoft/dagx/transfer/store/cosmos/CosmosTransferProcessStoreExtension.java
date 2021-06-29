@@ -93,6 +93,7 @@ public class CosmosTransferProcessStoreExtension implements ServiceExtension {
         // get unique connector name
         var connectorId = context.getSetting("dagx.ids.connector.name", "dagx-connector-" + UUID.randomUUID());
 
+        monitor.info("CosmosTransferProcessStore will use connector id '" + connectorId + "'");
         context.registerService(TransferProcessStore.class, new CosmosTransferProcessStore(container, context.getTypeManager(), partitionKey, connectorId));
 
         context.getTypeManager().registerTypes(TransferProcessDocument.class);

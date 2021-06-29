@@ -36,9 +36,6 @@ import java.util.stream.Collectors;
 import static com.microsoft.dagx.common.Cast.cast;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/**
- *
- */
 @ExtendWith(DagxExtension.class)
 @Disabled
 public class ClientRunner {
@@ -103,7 +100,7 @@ public class ClientRunner {
 
 
     @Test
-//    @Disabled
+    @Disabled
     void processClientRequest_toAzureStorage(RemoteMessageDispatcherRegistry dispatcherRegistry, TransferProcessManager processManager, TransferProcessObservable observable, TransferProcessStore store) throws Exception {
         var query = QueryRequest.Builder.newInstance()
                 .connectorAddress(PROVIDER_CONNECTOR)
