@@ -66,6 +66,14 @@ provider "kubernetes" {
   cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.atlas.kube_config.0.cluster_ca_certificate)
 }
 
+provider "kubernetes" {
+  alias                  = "connector"
+  host                   = data.azurerm_kubernetes_cluster.connector.kube_config.0.host
+  client_certificate     = base64decode(data.azurerm_kubernetes_cluster.connector.kube_config.0.client_certificate)
+  client_key             = base64decode(data.azurerm_kubernetes_cluster.connector.kube_config.0.client_key)
+  cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.connector.kube_config.0.cluster_ca_certificate)
+}
+
 //provider "helm" {
 //  alias = "nifi"
 //  kubernetes {
@@ -99,6 +107,13 @@ data "azurerm_kubernetes_cluster" "atlas" {
   module.atlas-cluster]
   name                = local.cluster_name_atlas
   resource_group_name = local.cluster_name_atlas
+}
+
+data "azurerm_kubernetes_cluster" "connector" {
+  depends_on = [
+  module.connector-cluster]
+  name                = local.cluster_name_connector
+  resource_group_name = local.cluster_name_connector
 }
 
 data "azurerm_client_config" "current" {}
@@ -316,7 +331,7 @@ module "atlas-cluster" {
   source       = "./aks-cluster"
   cluster_name = local.cluster_name_atlas
   location     = var.location
-  dns          = "${var.resourcesuffix}-dagx-atlas"
+  dnsPrefix    = "${var.resourcesuffix}-dagx-atlas"
 }
 module "atlas-deployment" {
   depends_on = [
@@ -331,5 +346,26 @@ module "atlas-deployment" {
     helm       = helm.atlas
   }
   public-ip = module.atlas-cluster.public-ip
+}
+
+module "connector-cluster" {
+  source       = "./aks-cluster"
+  cluster_name = local.cluster_name_connector
+  dnsPrefix    = "${var.resourcesuffix}-connector"
+  location     = var.location
+}
+
+module "connector-deployment" {
+  depends_on = [
+  module.connector-cluster]
+  source         = "./connector-deployment"
+  cluster_name   = local.cluster_name_connector
+  kubeconfig     = data.azurerm_kubernetes_cluster.connector.kube_config_raw
+  resourcesuffix = var.resourcesuffix
+  tenant_id      = data.azurerm_client_config.current.tenant_id
+  providers = {
+    kubernetes = kubernetes.connector
+  }
+  public-ip = module.connector-cluster.public-ip
 }
 
