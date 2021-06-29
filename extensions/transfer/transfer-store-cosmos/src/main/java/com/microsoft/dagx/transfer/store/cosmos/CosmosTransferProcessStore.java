@@ -37,6 +37,7 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
     private final CosmosQueryRequestOptions tracingOptions;
     private final TypeManager typeManager;
     private final String partitionKey;
+    private final String connectorId;
     private final RetryPolicy<Object> retryPolicy;
 
     /**
@@ -44,14 +45,19 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
      *
      * @param container    The CosmosDB-container that'll hold the transfer processes.
      * @param typeManager  The {@link TypeManager} that's used for serialization and deserialization
-     * @param partitionKey A Partition Key that CosmosDB uses for r/w distribution. Contrary to what CosmosDB docs state,
-     *                     is HIGHLY ADVISABLE to use one fixed value for all TPs because otherwise we're not able to find
+     * @param partitionKey A Partition Key that CosmosDB uses for r/w distribution. Contrary to what CosmosDB suggests, this
+     *                     key should be the same for all local (=clustered) connectors, otherwise queries in stored procedures might
+     *                     produce incomplete results.
+     * @param connectorId  A name for the connector that must be unique in the local storage context. That means that all connectors e.g.
+     *                     in a local K8s cluster must have unique names. The connectorId is used to lock transfer processes so that no
+     *                     duplicate processing happens.
      */
-    public CosmosTransferProcessStore(CosmosContainer container, TypeManager typeManager, String partitionKey) {
+    public CosmosTransferProcessStore(CosmosContainer container, TypeManager typeManager, String partitionKey, String connectorId) {
 
         this.container = container;
         this.typeManager = typeManager;
         this.partitionKey = partitionKey;
+        this.connectorId = connectorId;
         tracingOptions = new CosmosQueryRequestOptions();
         tracingOptions.setQueryMetricsEnabled(true);
         retryPolicy = new RetryPolicy<>()
@@ -226,9 +232,8 @@ public class CosmosTransferProcessStore implements TransferProcessStore {
     }
 
 
-    //todo: use real connector id
     private String getConnectorId() {
-        return "dagx-connector";
+        return connectorId;
     }
 
     private CosmosStoredProcedure getStoredProcedure(String sprocName) {

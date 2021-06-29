@@ -24,7 +24,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,7 +33,7 @@ import static com.microsoft.dagx.transfer.store.cosmos.TestHelper.createTransfer
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
+//@EnabledIfEnvironmentVariable(named = "CI", matches = "true")
 class CosmosTransferProcessStoreTest {
 
     private final static String accountName = "cosmos-itest";
@@ -43,18 +42,19 @@ class CosmosTransferProcessStoreTest {
     private static CosmosContainer container;
     private static CosmosDatabase database;
     private final String partitionKey = "testpartition";
+    private final String connectorId = "test-connector";
     private CosmosTransferProcessStore store;
     private TypeManager typeManager;
 
     @BeforeAll
     static void prepareCosmosClient() {
 
-        var isCi = propOrEnv("CI", "false");
-        if (!Boolean.parseBoolean(isCi)) {
-            return;
-        }
+//        var isCi = propOrEnv("CI", "false");
+//        if (!Boolean.parseBoolean(isCi)) {
+//            return;
+//        }
 
-        var key = propOrEnv("COSMOS_KEY", null);
+        var key = propOrEnv("COSMOS_KEY", "RYNecVDtJq2WKAcIoONBLzuTBys06kUcP8Rw9Yz5zOzsOQFVGaP8oGuI5qgF5ONQY4VukjkpQ4x7a2jwVvo7SQ==");
         assertThat(key).describedAs("COSMOS_KEY cannot be null!").isNotNull();
         var client = new CosmosClientBuilder()
                 .key(key)
@@ -77,7 +77,7 @@ class CosmosTransferProcessStoreTest {
         uploadStoredProcedure(container, "lease");
         typeManager = new TypeManager();
         typeManager.registerTypes(TestHelper.DummyCatalogEntry.class, DataCatalogEntry.class, DataRequest.class, DataEntry.class);
-        store = new CosmosTransferProcessStore(container, typeManager, partitionKey);
+        store = new CosmosTransferProcessStore(container, typeManager, partitionKey, connectorId);
     }
 
     @Test
@@ -161,7 +161,7 @@ class CosmosTransferProcessStoreTest {
     void nextForState_selfCanLeaseAgain() {
         var tp1 = createTransferProcess("process1", TransferProcessStates.INITIAL);
         var doc = TransferProcessDocument.from(tp1, partitionKey);
-        doc.acquireLease("dagx-connector");
+        doc.acquireLease(connectorId);
         var originalTs = doc.getLease().getLeasedAt();
         container.upsertItem(doc);
 
@@ -170,6 +170,8 @@ class CosmosTransferProcessStoreTest {
 
         var updatedDoc = readDocument(tp1.getId());
         assertThat(updatedDoc.getLease().getLeasedAt()).isNotEqualTo(originalTs);
+        assertThat(doc.getLease().getLeasedBy()).isEqualTo(connectorId);
+
     }
 
     @Test
@@ -295,7 +297,7 @@ class CosmosTransferProcessStoreTest {
 
         var doc = TransferProcessDocument.from(tp, partitionKey);
         container.upsertItem(doc).getItem();
-        doc.acquireLease("dagx-connector");
+        doc.acquireLease(connectorId);
         container.upsertItem(doc);
 
         //act
@@ -351,7 +353,7 @@ class CosmosTransferProcessStoreTest {
         final String processId = "test-process-id";
         var tp = createTransferProcess(processId);
         var doc = TransferProcessDocument.from(tp, partitionKey);
-        doc.acquireLease("dagx-connector");
+        doc.acquireLease(connectorId);
         container.upsertItem(doc);
 
         store.delete(processId);
@@ -379,7 +381,7 @@ class CosmosTransferProcessStoreTest {
         store.create(tp);
 
         //invoke sproc
-        final List<Object> procedureParams = Arrays.asList(100, 5, "test-connector");
+        final List<Object> procedureParams = Arrays.asList(100, 5, connectorId);
         final CosmosStoredProcedureRequestOptions options = new CosmosStoredProcedureRequestOptions();
         options.setPartitionKey(PartitionKey.NONE);
         final CosmosStoredProcedureResponse sprocResponse = container.getScripts().getStoredProcedure("nextForState").execute(procedureParams, options);
@@ -392,7 +394,7 @@ class CosmosTransferProcessStoreTest {
                 .map(json -> typeManager.readValue(json.toString(), TransferProcessDocument.class))
                 .collect(Collectors.toList());
         assertThat(documents).allSatisfy(document -> {
-            assertThat(document.getLease()).isNotNull().hasFieldOrPropertyWithValue("leasedBy", "test-connector")
+            assertThat(document.getLease()).isNotNull().hasFieldOrPropertyWithValue("leasedBy", connectorId)
                     .hasFieldOrProperty("leasedAt");
         });
 
