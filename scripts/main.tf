@@ -27,7 +27,7 @@ terraform {
       version = ">= 2.1.0"
       configuration_aliases = [
         helm.nifi,
-      helm.atlas]
+      helm.atlas, helm.connector]
     }
     aws = {
       source  = "hashicorp/aws"
@@ -91,6 +91,16 @@ provider "helm" {
     client_certificate     = base64decode(data.azurerm_kubernetes_cluster.atlas.kube_config.0.client_certificate)
     client_key             = base64decode(data.azurerm_kubernetes_cluster.atlas.kube_config.0.client_key)
     cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.atlas.kube_config.0.cluster_ca_certificate)
+  }
+}
+
+provider "helm" {
+  alias = "connector"
+  kubernetes {
+    host                   = data.azurerm_kubernetes_cluster.connector.kube_config.0.host
+    client_certificate     = base64decode(data.azurerm_kubernetes_cluster.connector.kube_config.0.client_certificate)
+    client_key             = base64decode(data.azurerm_kubernetes_cluster.connector.kube_config.0.client_key)
+    cluster_ca_certificate = base64decode(data.azurerm_kubernetes_cluster.connector.kube_config.0.cluster_ca_certificate)
   }
 }
 
@@ -365,6 +375,7 @@ module "connector-deployment" {
   tenant_id      = data.azurerm_client_config.current.tenant_id
   providers = {
     kubernetes = kubernetes.connector
+    helm       = helm.connector
   }
   public-ip = module.connector-cluster.public-ip
   image_env = {

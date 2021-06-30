@@ -8,6 +8,10 @@ terraform {
       source = "hashicorp/kubernetes"
       version = ">= 2.0.3"
     }
+    helm = {
+      source  = "hashicorp/helm"
+      version = ">= 2.1.0"
+    }
     tls = {
 
     }
@@ -41,101 +45,83 @@ resource "kubernetes_secret" "connector-cert-secret" {
   }
 }
 
-resource "kubernetes_deployment" "connector-deployment" {
-  metadata {
-    name = "connector-demo"
-    namespace = kubernetes_namespace.connector.id
-  }
-  spec {
-    replicas = 2
-    selector {
-      match_labels = {
-        connector-demo: "web"
-      }
-    }
-    template {
-      metadata {
-        labels = {
-          connector-demo: "web"
-        }
-      }
-      spec {
-        container {
-          name = "connector"
-          image = "ghcr.io/microsoft/data-appliance-gx/dagx-demo:latest"
-          image_pull_policy = "Always"
-          env {
-            name = "CLIENTID"
-            value = var.image_env.clientId
-          }
-          env {
-            name = "TENANTID"
-            value = var.image_env.tenantId
-          }
-          env {
-            name = "VAULTNAME"
-            value = var.image_env.vaultName
-          }
-          env {
-            name = "ATLAS_URL"
-            value = var.image_env.atlasUrl
-          }
-          env {
-            name = "NIFI_URL"
-            value = var.image_env.nifiUrl
-          }
-          env {
-            name = "NIFI_FLOW_URL"
-            value = var.image_env.nifiFlowUrl
-          }
-          env {
-            name = "COSMOS_ACCOUNT"
-            value = var.image_env.cosmosAccount
-          }
-          env {
-            name = "COSMOS_DB"
-            value = var.image_env.cosmosDb
-          }
-          port {
-            container_port = 8181
-            host_port = 8181
-            protocol = "TCP"
-          }
-          volume_mount {
-            mount_path = "/cert"
-            name = "certificates"
-            read_only = true
-          }
-        }
-        volume {
-          name = "certificates"
-          azure_file {
-            secret_name = kubernetes_secret.connector-cert-secret.metadata[0].name
-            share_name = "certificates"
-          }
-        }
-      }
-    }
-  }
-}
-
-resource "kubernetes_service" "connector-loadbalancer" {
-  metadata {
-    name = "connector-lb"
-    namespace = kubernetes_namespace.connector.metadata[0].name
-  }
-  spec {
-    type = "LoadBalancer"
-    port {
-      port = 8181
-      target_port = 8181
-      node_port = 30001
-    }
-    selector = {
-      connector-demo: "web"
-    }
-  }
-}
+//resource "kubernetes_deployment" "connector-deployment" {
+//  metadata {
+//    name = "connector-demo"
+//    namespace = kubernetes_namespace.connector.id
+//  }
+//  spec {
+//    replicas = 2
+//    selector {
+//      match_labels = {
+//        connector-demo: "web"
+//      }
+//    }
+//    template {
+//      metadata {
+//        labels = {
+//          connector-demo: "web"
+//        }
+//      }
+//      spec {
+//        container {
+//          name = "connector"
+//          image = "ghcr.io/microsoft/data-appliance-gx/dagx-demo:latest"
+//          image_pull_policy = "Always"
+//          env {
+//            name = "CLIENTID"
+//            value = var.image_env.clientId
+//          }
+//          env {
+//            name = "TENANTID"
+//            value = var.image_env.tenantId
+//          }
+//          env {
+//            name = "VAULTNAME"
+//            value = var.image_env.vaultName
+//          }
+//          env {
+//            name = "ATLAS_URL"
+//            value = var.image_env.atlasUrl
+//          }
+//          env {
+//            name = "NIFI_URL"
+//            value = var.image_env.nifiUrl
+//          }
+//          env {
+//            name = "NIFI_FLOW_URL"
+//            value = var.image_env.nifiFlowUrl
+//          }
+//          env {
+//            name = "COSMOS_ACCOUNT"
+//            value = var.image_env.cosmosAccount
+//          }
+//          env {
+//            name = "COSMOS_DB"
+//            value = var.image_env.cosmosDb
+//          }
+//          port {
+//            container_port = 8181
+//            host_port = 8181
+//            protocol = "TCP"
+//          }
+//          volume_mount {
+//            mount_path = "/cert"
+//            name = "certificates"
+//            read_only = true
+//          }
+//        }
+//        volume {
+//          name = "certificates"
+//          azure_file {
+//            secret_name = kubernetes_secret.connector-cert-secret.metadata[0].name
+//            share_name = "certificates"
+//          }
+//        }
+//      }
+//    }
+//  }
+//}
 
 output "connector-cluster-namespace" {
   value = kubernetes_namespace.connector.metadata[0].name

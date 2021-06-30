@@ -9,8 +9,8 @@ output "primary_id_certfile" {
 output "URLs" {
   value = {
     //    nifi  = "https://${module.nifi-cluster.public-ip.fqdn}"
-    atlas = "https://${module.atlas-cluster.public-ip.fqdn}"
-    connector= "https://${module.connector-cluster.public-ip.fqdn}"
+    atlas     = "https://${module.atlas-cluster.public-ip.fqdn}"
+    connector = "https://${module.connector-cluster.public-ip.fqdn}"
   }
 }
 

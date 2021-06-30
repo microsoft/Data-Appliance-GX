@@ -26,7 +26,7 @@ variable "tenant_id" {
 
 variable "connector_service_name" {
   type = string
-  default = "connector-entrypoint"
+  default = "connector-demo"
 }
 
 variable "connector_ingress_cert_name" {
