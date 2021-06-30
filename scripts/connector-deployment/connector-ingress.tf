@@ -30,35 +30,36 @@
 //  }
 //}
 //
-//resource "kubernetes_ingress" "connector-ingress-route" {
-//  metadata {
-//    name      = "connector-ingress"
-//    namespace = kubernetes_namespace.connector.metadata[0].name
-//    annotations = {
-//      "nginx.ingress.kubernetes.io/ssl-redirect" : "false"
-//      "nginx.ingress.kubernetes.io/use-regex" : "true"
-//      //      "nginx.ingress.kubernetes.io/rewrite-target" : "/$2"
-//    }
-//  }
-//  spec {
-//    rule {
-//      http {
-//        path {
-//          backend {
-//            service_name = var.connector_service_name
-//            service_port = 8181
-//          }
-//          path = "/"
-//        }
-//      }
-//    }
+resource "kubernetes_ingress" "connector-ingress-route" {
+  metadata {
+    name      = "connector-ingress"
+    namespace = kubernetes_namespace.connector.metadata[0].name
+    annotations = {
+      "kubernetes.io/ingress.class": "nginx"
+      "nginx.ingress.kubernetes.io/ssl-redirect" : "false"
+      "nginx.ingress.kubernetes.io/use-regex" : "true"
+      "nginx.ingress.kubernetes.io/rewrite-target" : "/$1"
+    }
+  }
+  spec {
+    rule {
+      http {
+        path {
+          path = "/(.*)"
+          backend {
+            service_name = var.connector_service_name
+            service_port = 8181
+          }
+        }
+      }
+    }
 //    tls {
 //      hosts       = [var.public-ip.fqdn]
 //      secret_name = kubernetes_secret.connector-ingress-secret.metadata[0].name
 //    }
-//  }
-//}
-//
+  }
+}
+
 resource "helm_release" "ingress-controller" {
   chart      = "ingress-nginx"
   name       = "connector-ingress-controller"
