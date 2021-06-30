@@ -336,7 +336,7 @@ module "connector-deployment" {
     helm       = helm.connector
   }
   public-ip = module.connector-cluster.public-ip
-  image_env = {
+  container_environment = {
     clientId      = azuread_application.dagx-terraform-app.application_id,
     tenantId      = data.azurerm_client_config.current.tenant_id,
     vaultName     = azurerm_key_vault.dagx-terraform-vault.name,
@@ -345,6 +345,10 @@ module "connector-deployment" {
     nifiFlowUrl   = "http://${azurerm_container_group.dagx-nifi.fqdn}:8888/"
     cosmosAccount = azurerm_cosmosdb_account.dagx-cosmos.name
     cosmosDb      = azurerm_cosmosdb_sql_database.dagx-database.name
+  }
+  certificate_mount_config = {
+    accountName = var.backend_account_name
+    accountKey  = var.backend_account_key
   }
 }
 

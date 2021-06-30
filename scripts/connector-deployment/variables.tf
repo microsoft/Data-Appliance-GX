@@ -32,7 +32,7 @@ variable "connector_service_name" {
 variable "connector_ingress_cert_name" {
   default = "connector-ingress-tls"
 }
-variable "image_env" {
+variable "container_environment" {
   type = object({
     clientId = string
     tenantId = string
@@ -43,6 +43,14 @@ variable "image_env" {
     cosmosAccount = string
     cosmosDb = string
   })
+}
+
+variable "certificate_mount_config"{
+  type = object({
+    accountName = string
+    accountKey  = string
+  })
+  
 }
 
 variable "public-ip" {

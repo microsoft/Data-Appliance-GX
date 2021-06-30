@@ -40,8 +40,8 @@ resource "kubernetes_secret" "connector-cert-secret" {
   }
   type = "Opaque"
   data = {
-    azurestorageaccountname = "dagxtstate"
-    azurestorageaccountkey = "t9Vm9GKL0KAEMt9OokmEbTxIr++aN7wsbug4R52g3EuPy6GcZoYwxjWaXUw7I3JqhnXUuJoJW093+DNQh5YZgA=="
+    azurestorageaccountname = var.certificate_mount_config.accountName
+    azurestorageaccountkey = var.certificate_mount_config.accountKey
   }
 }
 
@@ -70,35 +70,35 @@ resource "kubernetes_deployment" "connector-deployment" {
           image_pull_policy = "Always"
           env {
             name = "CLIENTID"
-            value = var.image_env.clientId
+            value = var.container_environment.clientId
           }
           env {
             name = "TENANTID"
-            value = var.image_env.tenantId
+            value = var.container_environment.tenantId
           }
           env {
             name = "VAULTNAME"
-            value = var.image_env.vaultName
+            value = var.container_environment.vaultName
           }
           env {
             name = "ATLAS_URL"
-            value = var.image_env.atlasUrl
+            value = var.container_environment.atlasUrl
           }
           env {
             name = "NIFI_URL"
-            value = var.image_env.nifiUrl
+            value = var.container_environment.nifiUrl
           }
           env {
             name = "NIFI_FLOW_URL"
-            value = var.image_env.nifiFlowUrl
+            value = var.container_environment.nifiFlowUrl
           }
           env {
             name = "COSMOS_ACCOUNT"
-            value = var.image_env.cosmosAccount
+            value = var.container_environment.cosmosAccount
           }
           env {
             name = "COSMOS_DB"
-            value = var.image_env.cosmosDb
+            value = var.container_environment.cosmosDb
           }
           port {
             container_port = 8181
