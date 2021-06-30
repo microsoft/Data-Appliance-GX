@@ -250,48 +250,6 @@ resource "azurerm_key_vault_secret" "nifi-credentials" {
   depends_on   = [azurerm_role_assignment.current-user]
 }
 
-# temporarily deploy nifi in a container as well as K8s was unstable
-resource "azurerm_container_group" "connector-instance" {
-  name                = "dagx-demo-continst"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
-  os_type             = "Linux"
-  ip_address_type     = "public"
-  dns_name_label      = "${var.resourcesuffix}-dagx"
-  container {
-    cpu    = 2
-    image  = "ghcr.io/microsoft/data-appliance-gx/dagx-demo:${var.SHORT_SHA}"
-    memory = "2"
-    name   = "dagx-demo"
-
-    ports {
-      port     = 8181
-      protocol = "TCP"
-    }
-
-    secure_environment_variables = {
-      CLIENTID       = azuread_application.dagx-terraform-app.application_id,
-      TENANTID       = data.azurerm_client_config.current.tenant_id,
-      VAULTNAME      = azurerm_key_vault.dagx-terraform-vault.name,
-      ATLAS_URL      = "https://${module.atlas-cluster.public-ip.fqdn}"
-      NIFI_URL       = "http://${azurerm_container_group.dagx-nifi.fqdn}:8080/"
-      NIFI_FLOW_URL  = "http://${azurerm_container_group.dagx-nifi.fqdn}:8888/"
-      COSMOS_ACCOUNT = azurerm_cosmosdb_account.dagx-cosmos.name
-      COSMOS_DB      = azurerm_cosmosdb_sql_database.dagx-database.name
-    }
-
-    volume {
-      mount_path           = "/cert"
-      name                 = "certificates"
-      share_name           = "certificates"
-      storage_account_key  = var.backend_account_key
-      storage_account_name = var.backend_account_name
-      read_only            = true
-    }
-  }
-  depends_on = [azurerm_cosmosdb_sql_database.dagx-database]
-}
-
 resource "azurerm_container_group" "dagx-nifi" {
   location            = azurerm_resource_group.rg.location
   name                = "dagx-nifi-continst"
