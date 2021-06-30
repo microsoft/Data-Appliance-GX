@@ -367,5 +367,15 @@ module "connector-deployment" {
     kubernetes = kubernetes.connector
   }
   public-ip = module.connector-cluster.public-ip
+  image_env = {
+    clientId      = azuread_application.dagx-terraform-app.application_id,
+    tenantId      = data.azurerm_client_config.current.tenant_id,
+    vaultName     = azurerm_key_vault.dagx-terraform-vault.name,
+    atlasUrl      = "https://${module.atlas-cluster.public-ip.fqdn}"
+    nifiUrl       = "http://${azurerm_container_group.dagx-nifi.fqdn}:8080/"
+    nifiFlowUrl   = "http://${azurerm_container_group.dagx-nifi.fqdn}:8888/"
+    cosmosAccount = azurerm_cosmosdb_account.dagx-cosmos.name
+    cosmosDb      = azurerm_cosmosdb_sql_database.dagx-database.name
+  }
 }
 

@@ -32,6 +32,18 @@ variable "connector_service_name" {
 variable "connector_ingress_cert_name" {
   default = "connector-ingress-tls"
 }
+variable "image_env" {
+  type = object({
+    clientId = string
+    tenantId = string
+    vaultName = string
+    atlasUrl = string
+    nifiUrl = string
+    nifiFlowUrl = string
+    cosmosAccount = string
+    cosmosDb = string
+  })
+}
 
 variable "public-ip" {
   type = object({
