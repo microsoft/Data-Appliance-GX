@@ -19,7 +19,8 @@ import java.util.Set;
 
 public class AzureEventExtension implements ServiceExtension {
 
-
+    private static final String DEFAULT_TOPIC_NAME = "connector-events";
+    private static final String DEFAULT_ENDPOINT_NAME_TEMPLATE = "https://%s.westeurope-1.eventgrid.azure.net/api/events";
     private static final String TOPIC_NAME_SETTING = "dagx.events.topic.name";
     private static final String TOPIC_ENDPOINT_SETTING = "dagx.events.topic.endpoint";
     private Monitor monitor;
@@ -53,8 +54,11 @@ public class AzureEventExtension implements ServiceExtension {
     private void registerListeners(ServiceExtensionContext context) {
 
         var vault = context.getService(Vault.class);
-        var endpoint = context.getSetting(TOPIC_ENDPOINT_SETTING, null);
-        var topicName = context.getSetting(TOPIC_NAME_SETTING, null);
+
+        var topicName = getTopic(context);
+        var endpoint = getEndpoint(context, topicName);
+        monitor.info("AzureEventExtension: will use topic endpoint " + endpoint);
+
         var publisherClient = new EventGridPublisherClientBuilder()
                 .credential(new AzureKeyCredential(Objects.requireNonNull(vault.resolveSecret(topicName), "Did not find secret in vault: " + endpoint)))
                 .endpoint(endpoint)
@@ -73,5 +77,17 @@ public class AzureEventExtension implements ServiceExtension {
         }
 
 
+    }
+
+    private String getTopic(ServiceExtensionContext context) {
+        return context.getSetting(TOPIC_NAME_SETTING, DEFAULT_TOPIC_NAME);
+    }
+
+    private String getEndpoint(ServiceExtensionContext context, String topicName) {
+        var ep = context.getSetting(TOPIC_ENDPOINT_SETTING, null);
+        if (ep == null) {
+            ep = String.format(DEFAULT_ENDPOINT_NAME_TEMPLATE, topicName);
+        }
+        return ep;
     }
 }
