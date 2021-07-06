@@ -100,6 +100,14 @@ resource "kubernetes_deployment" "connector-deployment" {
             name = "COSMOS_DB"
             value = var.container_environment.cosmosDb
           }
+          env{
+            name= "TOPIC_NAME"
+            value= var.events.topic_name
+          }
+          env{
+            name = "TOPIC_ENDPOINT"
+            value = var.events.topic_endpoint
+          }
           port {
             container_port = 8181
             host_port = 8181

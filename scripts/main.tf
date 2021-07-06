@@ -354,5 +354,9 @@ module "connector-deployment" {
     accountName = var.backend_account_name
     accountKey  = var.backend_account_key
   }
+  events = {
+    topic_name     = azurerm_eventgrid_topic.dagx-topic.name
+    topic_endpoint = azurerm_eventgrid_topic.dagx-topic.endpoint
+  }
 }
 

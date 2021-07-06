@@ -17,6 +17,6 @@ ENTRYPOINT java \
     -Ddagx.nifi.flow.url=${NIFI_FLOW_URL} \
     -Ddagx.cosmos.account.name=${COSMOS_ACCOUNT} \
     -Ddagx.cosmos.database.name=${COSMOS_DB} \
-    -Ddagx.events.topic.name=connector-events \
-    -Ddagx.events.topic.endpoint=https://connector-events.westeurope-1.eventgrid.azure.net/api/events \
+    -Ddagx.events.topic.name=${TOPIC_NAME} \
+    -Ddagx.events.topic.endpoint=${TOPIC_ENDPOINT} \
     -Djava.security.edg=file:/dev/.urandom -jar dagx-demo-e2e.jar
