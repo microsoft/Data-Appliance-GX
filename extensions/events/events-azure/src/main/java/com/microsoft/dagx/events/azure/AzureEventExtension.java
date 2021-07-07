@@ -64,7 +64,7 @@ public class AzureEventExtension implements ServiceExtension {
                 .endpoint(endpoint)
                 .buildEventGridEventPublisherAsyncClient();
 
-        final EventGridPublisher publisher = new EventGridPublisher(monitor, publisherClient);
+        final AzureEventGridPublisher publisher = new AzureEventGridPublisher(monitor, publisherClient);
 
         var processObservable = context.getService(TransferProcessObservable.class, true);
         if (processObservable != null) {
