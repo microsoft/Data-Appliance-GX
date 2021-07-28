@@ -8,7 +8,7 @@ plugins {
 
 dependencies {
     api(project(":core:spi"))
-    implementation(project(":minimal:ids:ids-spi"))
+    implementation(project(":implementations:minimal:ids:ids-spi"))
 }
 
 

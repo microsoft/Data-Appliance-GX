@@ -29,7 +29,7 @@ dependencies {
     }
 
     if (configFs == "enabled") {
-        api(project(":minimal:configuration:configuration-fs"))
+        api(project(":implementations:minimal:configuration:configuration-fs"))
     }
 
 }

@@ -21,7 +21,7 @@ dependencies {
 
     // extensions needed for integration testing
     testImplementation(project(":core:transfer"))
-    testImplementation(project(":minimal:transfer:transfer-store-memory"))
+    testImplementation(project(":implementations:minimal:transfer:transfer-store-memory"))
     testImplementation(testFixtures(project(":common:util")))
 
 }

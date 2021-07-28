@@ -13,18 +13,18 @@ plugins {
 
 dependencies {
     api(project(":core:spi"))
-    api(project(":minimal:ids:ids-spi"))
+    api(project(":implementations:minimal:ids:ids-spi"))
 
     api("de.fraunhofer.iais.eis.ids.infomodel:java:${infoModelVersion}")
-    
+
     implementation("jakarta.ws.rs:jakarta.ws.rs-api:${rsApi}")
 
 }
 
 publishing {
     publications {
-        create<MavenPublication>("ids-api-transfer") {
-            artifactId = "edc.ids-api-transfer"
+        create<MavenPublication>("ids-api-catalog") {
+            artifactId = "edc.ids-api-catalog"
             from(components["java"])
         }
     }

@@ -12,9 +12,9 @@ plugins {
 
 
 dependencies {
-    implementation(project(":minimal:runtime"))
+    implementation(project(":implementations:minimal:runtime"))
     implementation(project(":core:protocol:web"))
-    implementation(project(":minimal:control-http"))
+    implementation(project(":implementations:minimal:control-http"))
 
     implementation(project(":core:transfer"))
     implementation(project(":extensions:azure:transfer-process-store-cosmos"))
@@ -24,16 +24,16 @@ dependencies {
 
     implementation(project(":extensions:azure:events"))
 
-    implementation(project(":minimal:ids"))
+    implementation(project(":implementations:minimal:ids"))
 
     implementation(project(":extensions:catalog-atlas"))
     implementation(project(":samples:dataseed"))
 
     implementation(project(":extensions:azure:vault"))
-    implementation(project(":minimal:policy:policy-registry-memory"))
+    implementation(project(":implementations:minimal:policy:policy-registry-memory"))
     implementation(project(":core:iam:iam-mock"))
-    implementation(project(":minimal:ids:ids-policy-mock"))
-    implementation(project(":minimal:configuration:configuration-fs"))
+    implementation(project(":implementations:minimal:ids:ids-policy-mock"))
+    implementation(project(":implementations:minimal:configuration:configuration-fs"))
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.5.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.5.2")

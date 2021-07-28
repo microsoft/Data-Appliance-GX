@@ -18,7 +18,7 @@ dependencies {
     implementation(project(":samples:commandline:client-runtime"))
 
     implementation(project(":core:iam:oauth2"))  // required for now
-    implementation(project(":minimal:security:security-fs"))  // required for now
+    implementation(project(":implementations:minimal:security:security-fs"))  // required for now
 
     implementation("org.jline:jline:${jlineVersion}")
     implementation("com.squareup.okhttp3:okhttp:${okHttpVersion}")

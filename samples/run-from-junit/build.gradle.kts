@@ -11,14 +11,14 @@ val storageBlobVersion: String by project;
 dependencies {
     api(project(":core:bootstrap"))
     api(project(":core:transfer"))
-    api(project(":minimal:transfer:transfer-store-memory"))
+    api(project(":implementations:minimal:transfer:transfer-store-memory"))
 
     api(project(":extensions:aws:s3:provision"))
     api(project(":extensions:azure:blob:provision"))
 
-    api(project(":minimal:ids:ids-core"))
+    api(project(":implementations:minimal:ids:ids-core"))
 
-    testImplementation(project(":minimal:configuration:configuration-fs"))
+    testImplementation(project(":implementations:minimal:configuration:configuration-fs"))
     testImplementation(project(":extensions:azure:vault"))
     testImplementation("com.azure:azure-storage-blob:${storageBlobVersion}")
 
